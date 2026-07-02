@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
+using ProjectManagement.API.Services;
 
 namespace ProjectManagement.API.Controllers
 {
@@ -13,31 +14,19 @@ namespace ProjectManagement.API.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ProjectService _projectService;
 
-        public ProjectsController(AppDbContext context)
+        public ProjectsController(AppDbContext context, ProjectService projectService)
         {
             _context = context;
+            _projectService=projectService;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateProject(CreateProjectDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-            var project = new Project
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                Status = ProjectStatus.Planning,
-                OwnerId = userId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
-
+            var project = await _projectService.CreateProject(dto,userId);
             return Ok(project);
         }
 
