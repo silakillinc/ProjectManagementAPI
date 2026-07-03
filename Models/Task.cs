@@ -11,7 +11,7 @@ public class ProjectTask
     public User? AssignedToUser {get;set;}
     public int CreatedByUserId{get;set;}
     public User CreatedByUser{get;set;}=null!;
-    public TaskStatus Status{get;set;}
+    public ProjectTaskStatus Status{get;set;}
     public TaskPriority Priority {get;set;}
     public DateTime? DueDate{get;set;}
     public decimal? EstimatedHours{get;set;}
