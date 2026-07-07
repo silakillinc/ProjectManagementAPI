@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Mvc;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 
@@ -30,5 +31,42 @@ namespace ProjectManagement.API.Services{
             return projectTask;
 
         }
+
+        public async Task<ProjectTask> AssignTask(int id, AssignTaskDto dto, int userId)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task == null) throw new Exception("No Task Found.");
+
+            task.AssignedToUserId = dto.AssignedToUserId;
+            await _context.SaveChangesAsync();
+            return task;
+        }
+        public async Task<ProjectTask> UpdateStatus(int id, ProjectTaskStatus status,int userId)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task == null) throw new Exception("No Task Found.");
+            var oldStatus=task.Status;
+            task.Status= status;
+            if (status== ProjectTaskStatus.Done)
+            {
+                task.CompletedAt=DateTime.UtcNow;
+            }
+            else
+            {
+                task.CompletedAt=null;
+            }
+            var history=new TaskHistory
+            {
+                TaskId= id,
+                ChangedByUserId=userId,
+                ChangeType="Status changed",
+                OldValue= oldStatus.ToString(),
+                NewValue=status.ToString(),
+                CreatedAt=DateTime.UtcNow,
+            };
+            _context.TaskHistories.Add(history);
+            await _context.SaveChangesAsync();
+            return task;
+        }
+      }    
     }
-}
