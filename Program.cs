@@ -19,6 +19,7 @@ builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<ProjectMemberService>();
+builder.Services.AddScoped<AuthService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;

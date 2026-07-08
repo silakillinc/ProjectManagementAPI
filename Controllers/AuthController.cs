@@ -12,50 +12,26 @@ namespace ProjectManagement.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly TokenService _tokenService;
+        private readonly AuthService _authService;
 
-        public AuthController(AppDbContext context, TokenService tokenService)
+        public AuthController(AppDbContext context, TokenService tokenService,AuthService authService)
         {
             _context = context;
             _tokenService = tokenService;
+            _authService = authService;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-            {
-                return BadRequest("Bu email zaten kayıtlı.");
-            }
-
-            var user = new User
-            {
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                Email = dto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = UserRole.TeamMember,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return Ok("Kayıt başarılı.");
+            var result=await _authService.Register(dto);
+            return Ok(result);
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            {
-                return Unauthorized("Email veya şifre hatalı.");
-            }
-
-            var token = _tokenService.CreateToken(user);
-
+            var token = await _authService.Login(dto);
             return Ok(new { token });
         }
     }
