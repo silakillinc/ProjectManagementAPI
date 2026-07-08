@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ProjectManagement.API.Services{
     public class TaskService
@@ -45,6 +46,11 @@ namespace ProjectManagement.API.Services{
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) throw new Exception("No Task Found.");
+
+            var isMember = await _context.ProjectMembers
+            .AnyAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == dto.AssignedToUserId);
+
+            if (!isMember) throw new Exception("Kullanici projenin uyesi degil.");
 
             task.AssignedToUserId = dto.AssignedToUserId;
             await _context.SaveChangesAsync();
