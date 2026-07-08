@@ -12,6 +12,10 @@ namespace ProjectManagement.API.Services
         }
         public async Task<Project> CreateProject(CreateProjectDto dto, int userId)
         {
+            if (dto.EndDate < dto.StartDate)
+            {
+                throw new Exception("Baslangic tarihi bitis tarihinden gec olamaz");
+            }
             var project= new Project
             {
                 Name= dto.Name,
@@ -20,7 +24,7 @@ namespace ProjectManagement.API.Services
                 EndDate=dto.EndDate,
                 Status=ProjectStatus.Planning,
                 OwnerId=userId,
-                CreatedAt=DateTime.UtcNow
+                CreatedAt=DateTime.UtcNow   
             };
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();

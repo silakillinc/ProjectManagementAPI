@@ -13,6 +13,16 @@ namespace ProjectManagement.API.Services{
         }
         public async Task<ProjectTask> CreateTask(CreateTaskDto dto, int userId)
         {
+            if (dto.EstimatedHours < 0)
+            {
+                throw new Exception("Tahmini sure negatif olamaz.");
+            }
+            var project=await _context.Projects.FindAsync(dto.ProjectId);
+            if(project==null) throw new Exception("Proje bulunamadi");
+            if (dto.DueDate < project.StartDate)
+            {
+                throw new Exception("Bitis tarihi proje baslangicindan once olamaz.");
+            }
             var projectTask= new ProjectTask
             {
                 Title= dto.Title,
@@ -29,7 +39,6 @@ namespace ProjectManagement.API.Services{
             _context.Tasks.Add(projectTask);
             await _context.SaveChangesAsync();
             return projectTask;
-
         }
 
         public async Task<ProjectTask> AssignTask(int id, AssignTaskDto dto, int userId)

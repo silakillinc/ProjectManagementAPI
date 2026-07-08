@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ProjectManagement.API;
+using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<CommentService>();
+builder.Services.AddScoped<ProjectMemberService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
@@ -49,5 +51,28 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    if (!context.Users.Any(u => u.Role == UserRole.Admin))
+    {
+        var admin = new User
+        {
+            FirstName = "Admin",
+            LastName = "User",
+            Email = "admin@test.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            Role = UserRole.Admin,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        };
+        context.Users.Add(admin);
+        context.SaveChanges();
+    }
+}
+
+
 
 app.Run();

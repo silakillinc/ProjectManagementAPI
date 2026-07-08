@@ -23,6 +23,7 @@ namespace ProjectManagement.API.Controllers
         }
 
         [HttpPost]
+        [Authorize (Roles="Admin,ProjectManager")]
         public async Task<IActionResult> CreateProject(CreateProjectDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

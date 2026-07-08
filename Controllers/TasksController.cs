@@ -20,6 +20,7 @@ _context = context;
 _taskService = taskService;
 }
 [HttpPost]
+[Authorize(Roles = "Admin,ProjectManager")]
 public async Task<IActionResult> CreateTask(CreateTaskDto dto)
 {
 var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
