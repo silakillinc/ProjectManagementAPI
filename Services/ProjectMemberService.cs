@@ -13,7 +13,7 @@ namespace ProjectManagement.API.Services
       public async Task<ProjectMember>AddProjectMember(AddProjectMemberDto dto,int userId,int projectId)
         {
           var member=new ProjectMember{
-          UserId= userId,
+          UserId= dto.UserId,
           ProjectId=projectId,
           Role=ProjectMemberRole.Member,
           JoinedAt=DateTime.UtcNow,

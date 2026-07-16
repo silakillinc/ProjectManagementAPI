@@ -3,7 +3,6 @@ using ProjectManagement.API.Models;
 {
     public class CreateCommentsDto
     {
-        public int TaskId{get;set;}
         public string Content{get;set;}=string.Empty;
     }
 }

@@ -35,7 +35,7 @@ var user = new User
 }
 public async Task<string>Login(LoginDto dto)
         {
-          var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);  
+          var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email && u.IsActive && !u.IsDeleted);  
           if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             {
               throw new Exception ("Email veya sifre hatali.");

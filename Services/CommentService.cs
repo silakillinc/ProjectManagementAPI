@@ -10,18 +10,18 @@ namespace ProjectManagement.API.Services
         {
            _context=context; 
         } 
-     public async Task<Comment> CreateComment(int userId, CreateCommentsDto dto)
+     public async Task<Comment> CreateComment(int taskId,int userId, CreateCommentsDto dto)
         {
-         var comments=new Comment{
+         var comment=new Comment{
         
            Content=dto.Content,
-           TaskId=dto.TaskId,
+           TaskId=taskId,
            UserId=userId,
            CreatedAt=DateTime.UtcNow
         }; 
-        _context.Comments.Add(comments);
+        _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
-            return comments;   
+            return comment;   
         }
     }   
 }

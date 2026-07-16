@@ -9,7 +9,7 @@ using ProjectManagement.API.Services;
 namespace ProjectManagement.API.Controllers
 {
 [ApiController]
-[Route("api/tasks/{tasksId}/comments")]
+[Route("api/tasks/{taskId}/comments")]
 [Authorize] 
 
 public class CommentController:ControllerBase
@@ -25,7 +25,7 @@ public class CommentController:ControllerBase
       public async Task<IActionResult>CreateComment(int taskId, CreateCommentsDto dto)
         {
           var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); 
-          var comment= await _commentService.CreateComment(userId,dto);
+          var comment= await _commentService.CreateComment(taskId,userId,dto);
           return Ok (comment);
         }  
     }
