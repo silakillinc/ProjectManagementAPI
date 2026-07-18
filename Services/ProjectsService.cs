@@ -1,6 +1,7 @@
 using ProjectManagement.API.Controllers;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
+using ProjectManagement.API.Exceptions;
 
 namespace ProjectManagement.API.Services
 {
@@ -14,23 +15,24 @@ namespace ProjectManagement.API.Services
         {
             if (dto.EndDate < dto.StartDate)
             {
-                throw new Exception("Baslangic tarihi bitis tarihinden gec olamaz");
+                throw new BadRequestException("Proje bitiş tarihi başlangıç tarihinden önce olamaz.");
             }
-            var project= new Project
-            {
-                Name= dto.Name,
-                Description=dto.Description,
-                StartDate=dto.StartDate,
-                EndDate=dto.EndDate,
-                Status=ProjectStatus.Planning,
-                OwnerId=userId,
-                CreatedAt=DateTime.UtcNow   
-            };
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
+             var project = new Project
+    {
+        Name = dto.Name,
+        Description = dto.Description,
+        StartDate = dto.StartDate,
+        EndDate = dto.EndDate,
+        Status = ProjectStatus.Planning,
+        OwnerId = userId,
+        CreatedAt = DateTime.UtcNow
+    };
 
-            return project;
-}
-    }
+    _context.Projects.Add(project);
+    await _context.SaveChangesAsync();
+
+    return project;
 }
 
+}
+}

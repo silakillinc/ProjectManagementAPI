@@ -2,6 +2,7 @@ using ProjectManagement.API.Models;
 using ProjectManagement.API.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using ProjectManagement.API.Exceptions;
 
 namespace ProjectManagement.API.Services
 {
@@ -18,7 +19,7 @@ public AuthService(AppDbContext context ,TokenService tokenService)
 public async Task<string>Register(RegisterDto dto)
 {
 if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-        throw new Exception("Bu email zaten kayıtlı.");
+        throw new ConflictException("Bu email zaten kayitli.");
 var user = new User
 {
     FirstName=dto.FirstName,
@@ -33,15 +34,22 @@ var user = new User
     await _context.SaveChangesAsync();
     return "Kayit Basarili" ;
 }
-public async Task<string>Login(LoginDto dto)
-        {
-          var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email && u.IsActive && !u.IsDeleted);  
-          if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            {
-              throw new Exception ("Email veya sifre hatali.");
-            }
-              return _tokenService.CreateToken(user);
-            
-        }
+
+public async Task<string> Login(LoginDto dto)
+{
+    var user = await _context.Users.FirstOrDefaultAsync(u =>
+        u.Email == dto.Email &&
+        u.IsActive &&
+        !u.IsDeleted);
+
+    if (user == null ||
+        !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+    {
+        throw new UnauthorizedException(
+            "E-posta veya şifre hatalı.");
     }
+
+    return _tokenService.CreateToken(user);
 }
+  }
+    }

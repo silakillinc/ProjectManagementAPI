@@ -7,6 +7,7 @@ using System.Text;
 using ProjectManagement.API;
 using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
+using ProjectManagement.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +71,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

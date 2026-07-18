@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagement.API.Exceptions;
 
 namespace ProjectManagement.API.Services{
     public class TaskService
@@ -16,13 +17,13 @@ namespace ProjectManagement.API.Services{
         {
             if (dto.EstimatedHours < 0)
             {
-                throw new Exception("Tahmini sure negatif olamaz.");
+                throw new BadRequestException("Tahmini sure negatif olamaz.");
             }
             var project=await _context.Projects.FindAsync(dto.ProjectId);
-            if(project==null) throw new Exception("Proje bulunamadi");
+            if(project==null) throw new NotFoundException("Proje bulunamadi");
             if (dto.DueDate < project.StartDate)
             {
-                throw new Exception("Bitis tarihi proje baslangicindan once olamaz.");
+                throw new BadRequestException("Teslim tarihi proje baslangicindan once olamaz.");
             }
             var projectTask= new ProjectTask
             {
@@ -45,12 +46,12 @@ namespace ProjectManagement.API.Services{
         public async Task<ProjectTask> AssignTask(int id, AssignTaskDto dto, int userId)
         {
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null) throw new Exception("No Task Found.");
+            if (task == null) throw new NotFoundException("Gorev bulunamadi.");
 
             var isMember = await _context.ProjectMembers
             .AnyAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == dto.AssignedToUserId);
 
-            if (!isMember) throw new Exception("Kullanici projenin uyesi degil.");
+            if (!isMember) throw new BadRequestException("Kullanici projenin uyesi degil.");
 
             task.AssignedToUserId = dto.AssignedToUserId;
             await _context.SaveChangesAsync();
@@ -59,7 +60,7 @@ namespace ProjectManagement.API.Services{
         public async Task<ProjectTask> UpdateStatus(int id, ProjectTaskStatus status,int userId)
         {
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null) throw new Exception("No Task Found.");
+            if (task == null) throw new NotFoundException("Gorev bulunamadi.");
             var oldStatus=task.Status;
             task.Status= status;
             if (status== ProjectTaskStatus.Done)
