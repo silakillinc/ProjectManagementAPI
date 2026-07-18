@@ -8,6 +8,8 @@ using ProjectManagement.API;
 using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
 using ProjectManagement.API.Middleware;
+using FluentValidation;
+using ProjectManagement.API.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +37,8 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=projectmanagement.db"));

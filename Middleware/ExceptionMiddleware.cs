@@ -1,5 +1,6 @@
 using ProjectManagement.API.Common;
 using ProjectManagement.API.Exceptions;
+using FluentValidation;
 
 namespace ProjectManagement.API.Middleware;
 
@@ -22,6 +23,30 @@ public class ExceptionMiddleware
         {
             await _next(context);
         }
+        catch (ValidationException exception)
+{
+    _logger.LogWarning(
+        exception,
+        "İstek validasyon hatası ile sonuçlandı.");
+
+    var errors = exception.Errors
+        .GroupBy(error => error.PropertyName)
+        .ToDictionary(
+            group => group.Key,
+            group => group
+                .Select(error => error.ErrorMessage)
+                .ToArray());
+
+    context.Response.StatusCode =
+        StatusCodes.Status400BadRequest;
+
+    await context.Response.WriteAsJsonAsync(new
+    {
+        statusCode = StatusCodes.Status400BadRequest,
+        message = "Validasyon hatası oluştu.",
+        errors
+    });
+}
         catch (ApiException exception)
         {
             _logger.LogWarning(

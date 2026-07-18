@@ -1,7 +1,6 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectManagement.API.DTOs;
-using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
 
 namespace ProjectManagement.API.Controllers
@@ -10,27 +9,34 @@ namespace ProjectManagement.API.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly TokenService _tokenService;
         private readonly AuthService _authService;
+        private readonly IValidator<RegisterDto> _registerValidator;
+        private readonly IValidator<LoginDto> _loginValidator;
 
-        public AuthController(AppDbContext context, TokenService tokenService,AuthService authService)
+        public AuthController(
+            AuthService authService,
+            IValidator<RegisterDto> registerValidator,
+            IValidator<LoginDto> loginValidator)
         {
-            _context = context;
-            _tokenService = tokenService;
             _authService = authService;
+            _registerValidator = registerValidator;
+            _loginValidator = loginValidator;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            var result=await _authService.Register(dto);
+            await _registerValidator.ValidateAndThrowAsync(dto);
+
+            var result = await _authService.Register(dto);
             return Ok(result);
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
+            await _loginValidator.ValidateAndThrowAsync(dto);
+
             var token = await _authService.Login(dto);
             return Ok(new { token });
         }
