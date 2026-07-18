@@ -5,6 +5,7 @@ using System.Security.Claims;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
+using FluentValidation;
 
 namespace ProjectManagement.API.Controllers
 {
@@ -15,19 +16,24 @@ namespace ProjectManagement.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ProjectService _projectService;
+        private readonly IValidator<CreateProjectDto> _createProjectValidator;
 
-        public ProjectsController(AppDbContext context, ProjectService projectService)
+        public ProjectsController(AppDbContext context, ProjectService projectService,IValidator<CreateProjectDto> createProjectValidator)
         {
             _context = context;
             _projectService=projectService;
+            _createProjectValidator = createProjectValidator;
         }
 
         [HttpPost]
         [Authorize (Roles="Admin,ProjectManager")]
         public async Task<IActionResult> CreateProject(CreateProjectDto dto)
         {
+            await _createProjectValidator.ValidateAndThrowAsync(dto);
+
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var project = await _projectService.CreateProject(dto,userId);
+
             return Ok(project);
         }
 
