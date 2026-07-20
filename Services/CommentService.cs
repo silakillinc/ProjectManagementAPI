@@ -1,5 +1,7 @@
 using ProjectManagement.API.Models;
 using ProjectManagement.API.DTOs;
+using ProjectManagement.API.DTOs.Responses;
+using ProjectManagement.API.Mappings;
 
 
 namespace ProjectManagement.API.Services
@@ -10,7 +12,7 @@ namespace ProjectManagement.API.Services
         {
            _context=context; 
         } 
-     public async Task<Comment> CreateComment(int taskId,int userId, CreateCommentsDto dto)
+     public async Task<CommentResponseDto> CreateComment(int taskId,int userId, CreateCommentsDto dto)
         {
          var comment=new Comment{
         
@@ -21,7 +23,7 @@ namespace ProjectManagement.API.Services
         }; 
         _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
-            return comment;   
+            return comment.ToResponseDto();   
         }
     }   
 }

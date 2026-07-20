@@ -1,9 +1,10 @@
 
-using Microsoft.AspNetCore.Mvc;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagement.API.Exceptions;
+using ProjectManagement.API.DTOs.Responses;
+using ProjectManagement.API.Mappings;
 
 namespace ProjectManagement.API.Services{
     public class TaskService
@@ -13,7 +14,7 @@ namespace ProjectManagement.API.Services{
         {
             _context= context;
         }
-        public async Task<ProjectTask> CreateTask(CreateTaskDto dto, int userId)
+        public async Task<TaskResponseDto> CreateTask(CreateTaskDto dto, int userId)
         {
             if (dto.EstimatedHours < 0)
             {
@@ -40,13 +41,13 @@ namespace ProjectManagement.API.Services{
             };
             _context.Tasks.Add(projectTask);
             await _context.SaveChangesAsync();
-            return projectTask;
+            return projectTask.ToResponseDto();
         }
 
-        public async Task<ProjectTask> AssignTask(int id, AssignTaskDto dto, int userId)
+        public async Task<TaskResponseDto> AssignTask(int id, AssignTaskDto dto, int userId)
         {
             var task = await _context.Tasks.FindAsync(id);
-            if (task == null) throw new NotFoundException("Gorev bulunamadi.");
+            if(task == null) throw new NotFoundException("Gorev bulunamadi.");
 
             var isMember = await _context.ProjectMembers
             .AnyAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == dto.AssignedToUserId);
@@ -55,9 +56,9 @@ namespace ProjectManagement.API.Services{
 
             task.AssignedToUserId = dto.AssignedToUserId;
             await _context.SaveChangesAsync();
-            return task;
+            return task.ToResponseDto();
         }
-        public async Task<ProjectTask> UpdateStatus(int id, ProjectTaskStatus status,int userId)
+        public async Task<TaskResponseDto> UpdateStatus(int id, ProjectTaskStatus status,int userId)
         {
             var task = await _context.Tasks.FindAsync(id);
             if (task == null) throw new NotFoundException("Gorev bulunamadi.");
@@ -82,7 +83,18 @@ namespace ProjectManagement.API.Services{
             };
             _context.TaskHistories.Add(history);
             await _context.SaveChangesAsync();
-            return task;
+            return task.ToResponseDto();
         }
+        public async Task<List<TaskResponseDto>> GetTasks()
+    {
+        var tasks = await _context.Tasks
+        .AsNoTracking()
+        .Where(task => !task.IsDeleted)
+        .ToListAsync();
+
+        return tasks
+        .Select(task => task.ToResponseDto())
+        .ToList();
+    }
       }    
     }

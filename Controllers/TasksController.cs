@@ -14,15 +14,13 @@ namespace ProjectManagement.API.Controllers
 [Authorize]
 public class TasksController : ControllerBase
 {
-private readonly AppDbContext _context;
 private readonly TaskService _taskService;
 private readonly IValidator<CreateTaskDto> _createTaskValidator;
 private readonly IValidator<AssignTaskDto> _assignTaskValidator;
 private readonly IValidator<UpdateStatusDto> _updateStatusValidator;
-public TasksController(AppDbContext context, TaskService taskService,IValidator<CreateTaskDto> createTaskValidator,IValidator<AssignTaskDto> assignTaskValidator,
+public TasksController(TaskService taskService,IValidator<CreateTaskDto> createTaskValidator,IValidator<AssignTaskDto> assignTaskValidator,
     IValidator<UpdateStatusDto> updateStatusValidator)
 {
-_context = context;
 _taskService = taskService;
 _createTaskValidator = createTaskValidator;
 _assignTaskValidator = assignTaskValidator;
@@ -41,11 +39,9 @@ public async Task<IActionResult> CreateTask(CreateTaskDto dto)
   return Ok(task);
 }
 [HttpGet]
-public async Task<IActionResult> getTask()
+public async Task<IActionResult> GetTasks()
 {
-var tasks= await _context.Tasks
-.Where(t=> !t.IsDeleted)
-.ToListAsync();
+var tasks= await _taskService.GetTasks();
 return Ok (tasks);
 }
 

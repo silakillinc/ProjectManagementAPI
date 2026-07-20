@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Identity;
+
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
-
+using ProjectManagement.API.DTOs.Responses;
+using ProjectManagement.API.Mappings;
 namespace ProjectManagement.API.Services
 {
    public class ProjectMemberService
@@ -10,7 +11,7 @@ namespace ProjectManagement.API.Services
       public ProjectMemberService(AppDbContext context){
         _context=context;
       }
-      public async Task<ProjectMember>AddProjectMember(AddProjectMemberDto dto,int userId,int projectId)
+      public async Task<ProjectMemberResponseDto>AddProjectMember(AddProjectMemberDto dto,int userId,int projectId)
         {
           var member=new ProjectMember{
           UserId= dto.UserId,
@@ -22,7 +23,7 @@ namespace ProjectManagement.API.Services
         }; 
             _context.ProjectMembers.Add(member);
             await _context.SaveChangesAsync();
-            return member; 
+            return member.ToResponseDto(); 
         }
     } 
 }

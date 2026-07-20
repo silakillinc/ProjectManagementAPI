@@ -1,4 +1,6 @@
-using ProjectManagement.API.Controllers;
+using Microsoft.EntityFrameworkCore;
+using ProjectManagement.API.DTOs.Responses;
+using ProjectManagement.API.Mappings;
 using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 using ProjectManagement.API.Exceptions;
@@ -11,7 +13,7 @@ namespace ProjectManagement.API.Services
         public ProjectService(AppDbContext context){
             _context= context;
         }
-        public async Task<Project> CreateProject(CreateProjectDto dto, int userId)
+        public async Task<ProjectResponseDto> CreateProject(CreateProjectDto dto, int userId)
         {
             if (dto.EndDate < dto.StartDate)
             {
@@ -31,8 +33,18 @@ namespace ProjectManagement.API.Services
     _context.Projects.Add(project);
     await _context.SaveChangesAsync();
 
-    return project;
+    return project.ToResponseDto();
 }
+   public async Task<List<ProjectResponseDto>> GetProjects()
+{
+    var projects = await _context.Projects
+        .AsNoTracking()
+        .Where(project => !project.IsDeleted)
+        .ToListAsync();
 
+    return projects
+        .Select(project => project.ToResponseDto())
+        .ToList();
+} 
 }
 }

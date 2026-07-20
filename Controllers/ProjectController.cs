@@ -14,13 +14,13 @@ namespace ProjectManagement.API.Controllers
     [Authorize]
     public class ProjectsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        
         private readonly ProjectService _projectService;
         private readonly IValidator<CreateProjectDto> _createProjectValidator;
 
-        public ProjectsController(AppDbContext context, ProjectService projectService,IValidator<CreateProjectDto> createProjectValidator)
+        public ProjectsController(ProjectService projectService,IValidator<CreateProjectDto> createProjectValidator)
         {
-            _context = context;
+            
             _projectService=projectService;
             _createProjectValidator = createProjectValidator;
         }
@@ -40,10 +40,7 @@ namespace ProjectManagement.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProjects()
         {
-            var projects = await _context.Projects
-                .Where(p => !p.IsDeleted)
-                .ToListAsync();
-
+            var projects = await _projectService.GetProjects();
             return Ok(projects);
         }
     }
