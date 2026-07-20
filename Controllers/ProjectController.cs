@@ -40,7 +40,9 @@ namespace ProjectManagement.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProjects()
         {
-            var projects = await _projectService.GetProjects();
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var isAdmin = User.IsInRole("Admin");
+            var projects = await _projectService.GetProjects(userId, isAdmin);
             return Ok(projects);
         }
     }

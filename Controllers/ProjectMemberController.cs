@@ -29,10 +29,10 @@ namespace ProjectManagement.API.Controllers
           await _memberValidator.ValidateAndThrowAsync(dto);
 
           var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-          var newMember=await _projectMemberService.AddProjectMember(dto, userId,projectId);  
+          var isAdmin = User.IsInRole("Admin");
+          var newMember=await _projectMemberService.AddProjectMember(dto, userId, projectId, isAdmin);
           
           return Ok (newMember);
         }
     }
 }
-

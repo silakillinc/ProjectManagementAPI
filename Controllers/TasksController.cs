@@ -29,41 +29,56 @@ _updateStatusValidator = updateStatusValidator;
 
 [HttpPost]
 [Authorize(Roles = "Admin,ProjectManager")]
-public async Task<IActionResult> CreateTask(CreateTaskDto dto)
+public async Task <IActionResult> CreateTask(CreateTaskDto dto)
 {
   await _createTaskValidator.ValidateAndThrowAsync(dto);
 
   var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-  var task = await _taskService.CreateTask(dto, userId);
+  var isAdmin =User.IsInRole("Admin");
+  var task = await _taskService.CreateTask(dto,userId,isAdmin);
+
   return Ok(task);
 }
 [HttpGet]
 public async Task<IActionResult> GetTasks()
 {
-var tasks= await _taskService.GetTasks();
+var userId=int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+var isAdmin=User.IsInRole("Admin");
+
+var tasks =await _taskService.GetTasks(userId,isAdmin);
 return Ok (tasks);
 }
 
 [HttpPut("{id}/assign")]
+[Authorize(Roles = "Admin,ProjectManager")]
 public async Task<IActionResult> AssignTask(int id, AssignTaskDto dto)
 {
 await _assignTaskValidator.ValidateAndThrowAsync(dto);
 
 var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-var task = await _taskService.AssignTask(id, dto, userId);
+var isAdmin=User.IsInRole("Admin");
+var task = await _taskService.AssignTask(id,dto,userId,isAdmin);
 
 return Ok(task); 
 }
 
 [HttpPatch("{id}/status")]
-public async Task<IActionResult>UpdateStatus(int id, UpdateStatusDto dto)
+public async Task<IActionResult> UpdateStatus(
+    int id,
+    UpdateStatusDto dto)
 {
-  await _updateStatusValidator.ValidateAndThrowAsync(dto);
+    await _updateStatusValidator.ValidateAndThrowAsync(dto);
 
-  var userId= int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-  var status= await _taskService.UpdateStatus(id,dto.Status,userId);
-  return Ok (status);
+    var userId = int.Parse(
+        User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    var isAdmin = User.IsInRole("Admin");
+
+    var task = await _taskService.UpdateStatus(id,dto.Status,userId,isAdmin);
+
+    return Ok(task);
 }
   }
     } 

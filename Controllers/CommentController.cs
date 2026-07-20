@@ -6,6 +6,8 @@ using ProjectManagement.API.DTOs;
 using ProjectManagement.API.Models;
 using ProjectManagement.API.Services;
 using FluentValidation;
+using ProjectManagement.API.Exceptions;
+using ProjectManagement.API.DTOs.Responses;
 
 namespace ProjectManagement.API.Controllers
 {
@@ -29,8 +31,10 @@ public class CommentController:ControllerBase
           await _commentValidator.ValidateAndThrowAsync(dto);
 
           var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); 
+          
+          var isAdmin=User.IsInRole("Admin");
 
-          var comment= await _commentService.CreateComment(taskId,userId,dto);
+          var comment= await _commentService.CreateComment(taskId,userId,dto,isAdmin);
           
           return Ok (comment);
         }  

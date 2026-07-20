@@ -35,12 +35,23 @@ namespace ProjectManagement.API.Services
 
     return project.ToResponseDto();
 }
-   public async Task<List<ProjectResponseDto>> GetProjects()
+   public async Task<List<ProjectResponseDto>> GetProjects(int userId, bool isAdmin)
 {
-    var projects = await _context.Projects
+    var query = _context.Projects
         .AsNoTracking()
-        .Where(project => !project.IsDeleted)
-        .ToListAsync();
+        .Where(project => !project.IsDeleted);
+
+    if (!isAdmin)
+    {
+        query = query.Where(project =>
+            project.OwnerId == userId ||
+            _context.ProjectMembers.Any(member =>
+                member.ProjectId == project.Id &&
+                member.UserId == userId &&
+                member.IsActive));
+    }
+
+    var projects = await query.ToListAsync();
 
     return projects
         .Select(project => project.ToResponseDto())
