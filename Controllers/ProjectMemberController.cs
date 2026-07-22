@@ -22,6 +22,11 @@ namespace ProjectManagement.API.Controllers
           _projectMemberService=projectMemberService;  
           _memberValidator = memberValidator;
         }
+
+     /// <summary>
+     /// Projeye yeni bir ekip üyesi ekle
+     /// </summary>
+             
     [HttpPost]
     [Authorize(Roles = "Admin,ProjectManager")]
     public async Task<IActionResult> AddProjectMember(AddProjectMemberDto dto,int projectId)

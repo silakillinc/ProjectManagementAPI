@@ -23,6 +23,10 @@ namespace ProjectManagement.API.Controllers
             _loginValidator = loginValidator;
         }
 
+        /// <summary>
+        /// Yeni Kullanıcı Kaydı Oluştur
+        /// </summary>
+        
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
@@ -32,6 +36,10 @@ namespace ProjectManagement.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Kullanıcı Girişi
+        /// </summary>
+    
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {

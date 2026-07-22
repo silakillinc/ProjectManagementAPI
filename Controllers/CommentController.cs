@@ -25,6 +25,11 @@ public class CommentController:ControllerBase
             _commentService=commentService;
             _commentValidator = commentValidator;
         }  
+
+      /// <summary>
+      /// Yeni yorum ekle
+      /// </summary>
+
       [HttpPost]
       public async Task<IActionResult>CreateComment(int taskId, CreateCommentsDto dto)
         {

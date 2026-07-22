@@ -10,6 +10,8 @@ using ProjectManagement.API.Services;
 using ProjectManagement.API.Middleware;
 using FluentValidation;
 using ProjectManagement.API.Validators;
+using System.Reflection;
+using ProjectManagement.API.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,11 +19,42 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ProjectManagement API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    { 
+    Title = "Proje Yönetim Sistemi API", 
+    Version = "v1", 
+    Description="Kullanıcı, proje, görev,üyelik ve yorum işlemlerini yönetmek için geliştirilen API" 
+
+    });
+
+    c.TagActionsBy(api =>
+    {
+    var controllerName =api.ActionDescriptor.RouteValues["controller"];
+
+    var tagName = controllerName switch
+    {
+        "Auth" => "Kayıt ve Giriş İşlemleri",
+        "Comment" => "Yorumlar",
+        "ProjectMember" => "Proje Üyeleri",
+        "Projects" => "Projeler",
+        "Tasks" => "Görevler",
+    _ => controllerName ?? "Diğer İşlemler"
+    };
+
+    return new[] { tagName };
+
+    });
+    var xmlFile =$"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+
+    var xmlPath = Path.Combine(AppContext.BaseDirectory,xmlFile);
+
+    c.IncludeXmlComments(xmlPath);
+
+    c.OperationFilter<AuthorizeOperationFilter>();
     
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT access token degerini girin.",
+        Description = "İlk olarak giriş yaparak JWT token alın. Ardından token değerini bu alana girin",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -79,7 +112,16 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json","Proje Yönetim Sistemi API");
+    options.DocumentTitle="Proje Yönetim Sistemi";
+    options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+
+    options.DefaultModelsExpandDepth(-1);
+    options.DisplayRequestDuration();
+    options.EnableFilter();
+});
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -105,8 +147,23 @@ using (var scope = app.Services.CreateScope())
         context.Users.Add(admin);
         context.SaveChanges();
     }
+        if (!context.Users.Any(user =>
+        user.Email == "manager@test.com"))
+    {
+        var projectManager = new User
+        {
+            FirstName = "Proje",
+            LastName = "Yöneticisi",
+            Email = "manager@test.com",
+            PasswordHash =BCrypt.Net.BCrypt.HashPassword("Manager123!"),
+            Role = UserRole.ProjectManager,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            IsDeleted = false
+        };
+
+        context.Users.Add(projectManager);
+        context.SaveChanges();
+    }
 }
-
-
-
 app.Run();

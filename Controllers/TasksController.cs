@@ -27,6 +27,10 @@ _assignTaskValidator = assignTaskValidator;
 _updateStatusValidator = updateStatusValidator;
 }
 
+/// <summary>
+/// Yeni bir görev oluştur.
+/// </summary>
+
 [HttpPost]
 [Authorize(Roles = "Admin,ProjectManager")]
 public async Task <IActionResult> CreateTask(CreateTaskDto dto)
@@ -40,6 +44,11 @@ public async Task <IActionResult> CreateTask(CreateTaskDto dto)
 
   return Ok(task);
 }
+
+/// <summary>
+/// Kullanıcının Erişebildiği Görevleri
+/// </summary>
+
 [HttpGet]
 public async Task<IActionResult> GetTasks()
 {
@@ -50,6 +59,10 @@ var isAdmin=User.IsInRole("Admin");
 var tasks =await _taskService.GetTasks(userId,isAdmin);
 return Ok (tasks);
 }
+
+/// <summary>
+/// Aktif Proje Üyesine Görev Ata
+/// </summary>
 
 [HttpPut("{id}/assign")]
 [Authorize(Roles = "Admin,ProjectManager")]
@@ -63,6 +76,11 @@ var task = await _taskService.AssignTask(id,dto,userId,isAdmin);
 
 return Ok(task); 
 }
+
+/// <summary>
+/// Görev durumunu güncelle
+/// </summary>
+
 
 [HttpPatch("{id}/status")]
 public async Task<IActionResult> UpdateStatus(
