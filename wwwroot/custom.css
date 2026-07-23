@@ -1,0 +1,52 @@
+
+.swagger-ui .opblock-tag {
+    margin: 10px 0 6px !important;
+    padding: 18px 16px !important;
+    border: 1px solid rgba(80, 160, 210, 0.25) !important;
+    border-radius: 10px !important;
+    background: rgba(50, 120, 165, 0.10) !important;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.12);
+    transition: background 0.2s ease;
+}
+
+.swagger-ui .opblock-tag:hover {
+    background: rgba(50, 120, 165, 0.18) !important;
+}
+
+.swagger-ui .opblock {
+    margin: 10px 0 14px !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+.swagger-ui .opblock-summary-description {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.swagger-ui .opblock-summary-path {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.swagger-ui .btn {
+    border-radius: 8px !important;
+    font-weight: 600;
+}
+
+.swagger-ui .btn.authorize {
+    padding: 9px 18px !important;
+    border-radius: 9px !important;
+}
+
+.swagger-ui .btn.execute {
+    border-radius: 8px !important;
+    font-weight: 700;
+}
+
+.swagger-ui input,
+.swagger-ui textarea,
+.swagger-ui select {
+    border-radius: 7px !important;
+}

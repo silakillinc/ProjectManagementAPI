@@ -33,11 +33,12 @@ builder.Services.AddSwaggerGen(c =>
 
     var tagName = controllerName switch
     {
-        "Auth" => "Kayıt ve Giriş İşlemleri",
-        "Comment" => "Yorumlar",
-        "ProjectMember" => "Proje Üyeleri",
-        "Projects" => "Projeler",
-        "Tasks" => "Görevler",
+        "Auth" => "1. Kayıt ve Giriş İşlemleri",
+        "Users" => "2. Kullanıcılar",
+        "Projects" => "3. Projeler",
+        "ProjectMember" => "4. Proje Üyeleri",
+        "Tasks" => "5. Görevler",
+        "Comment"=>"6. Yorumlar",
     _ => controllerName ?? "Diğer İşlemler"
     };
 
@@ -73,8 +74,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=projectmanagement.db"));
+builder.Services.AddDbContext<AppDbContext>(options =>options.UseSqlite("Data Source=projectmanagement.db"));
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ProjectService>();
@@ -82,6 +82,7 @@ builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<ProjectMemberService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
@@ -111,6 +112,8 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+app.UseStaticFiles();
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -121,6 +124,8 @@ app.UseSwaggerUI(options =>
     options.DefaultModelsExpandDepth(-1);
     options.DisplayRequestDuration();
     options.EnableFilter();
+
+    options.InjectStylesheet("/custom.css");
 });
 
 app.UseHttpsRedirection();
