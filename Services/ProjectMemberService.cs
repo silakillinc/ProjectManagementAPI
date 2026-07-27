@@ -113,5 +113,25 @@ namespace ProjectManagement.API.Services
             await _context.SaveChangesAsync(); 
             return member.ToResponseDto();
         }
+        public async Task RemoveProjectMember(int projectId, int memberId, int userId,bool isAdmin)
+        {
+            var project= await _context.Projects.FirstOrDefaultAsync(project =>project.Id==projectId&& !project.IsDeleted);
+            if (project is null)
+            {
+                throw new NotFoundException("Proje bulunamadı");
+            }
+            if(!isAdmin && project.OwnerId != userId)
+            {
+                throw new ForbiddenException("Bu projeden üye çıkarma yetkiniz yok");
+            }
+            var member =await _context.ProjectMembers.FirstOrDefaultAsync(member =>member.Id== memberId && member.ProjectId== projectId && member.IsActive);
+            if(member is null)
+            {
+                throw new NotFoundException("Aktif proje üyesi bulunamadı.");
+            }
+            member.IsActive=false;
+
+            await _context.SaveChangesAsync();
+        }
     } 
 }

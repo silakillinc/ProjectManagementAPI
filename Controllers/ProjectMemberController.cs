@@ -71,5 +71,19 @@ namespace ProjectManagement.API.Controllers
             var member= await _projectMemberService.UpdateProjectMemberRole(projectId,memberId,dto,userId,isAdmin);
             return Ok(member);       
         }
+        ///<summary>
+        ///Aktif üyeyi projeden çıkar
+        ///</summary>
+        [HttpDelete("{memberId}")]
+        [Authorize(Roles ="Admin,ProjectManager")]
+        public async Task <IActionResult>RemoveProjectMember(int projectId,int memberId)
+        {
+            var userId=int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var isAdmin= User.IsInRole("Admin");
+
+            await _projectMemberService.RemoveProjectMember(projectId,memberId,userId,isAdmin);
+
+            return NoContent();
+        }
     }
 }
