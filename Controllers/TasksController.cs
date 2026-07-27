@@ -81,7 +81,6 @@ return Ok(task);
 /// Görev durumunu güncelle
 /// </summary>
 
-
 [HttpPatch("{id}/status")]
 public async Task<IActionResult> UpdateStatus(
     int id,
@@ -98,5 +97,22 @@ public async Task<IActionResult> UpdateStatus(
 
     return Ok(task);
 }
+
+/// <summary>
+/// Görev değişiklik geçmişi.
+/// </summary>
+
+[HttpGet("{taskId}/histories")]
+public async Task<IActionResult>GetTaskHistories(int taskId)
+    {
+      var userId=int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+      var isAdmin=User.IsInRole("Admin");
+
+      var histories =await _taskService.GetTaskHistories(taskId,userId,isAdmin);
+
+      return Ok(histories);     
+    }
+
   }
     } 

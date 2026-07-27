@@ -62,7 +62,8 @@ namespace ProjectManagement.API.Services{
 
         public async Task<TaskResponseDto> AssignTask(int id, AssignTaskDto dto, int userId,bool isAdmin)
         {
-            var task = await _context.Tasks.FindAsync(id);
+            var task = await _context.Tasks.FirstOrDefaultAsync(task=>task.Id== id && !task.IsDeleted);
+
             if(task == null) throw new NotFoundException("Gorev bulunamadi.");
 
             var project = await _context.Projects.FirstOrDefaultAsync(project =>project.Id == task.ProjectId &&!project.IsDeleted);
@@ -77,14 +78,35 @@ namespace ProjectManagement.API.Services{
             throw new ForbiddenException("Bu görev için kullanıcı atama yetkiniz yok.");
         }
 
-        var isMember = await _context.ProjectMembers.AnyAsync(member =>member.ProjectId == task.ProjectId &&member.UserId == dto.AssignedToUserId &&member.IsActive);
+        var isMember = await _context.ProjectMembers.AnyAsync(member =>member.ProjectId == task.ProjectId && member.UserId == dto.AssignedToUserId && member.IsActive);
 
         if (!isMember)
         {
             throw new BadRequestException("Görev yalnızca projenin aktif bir üyesine atanabilir.");
         }
 
+        if (task.AssignedToUserId == dto.AssignedToUserId)
+        {
+            throw new ConflictException("Görev zaten bu kullanıcıya atanmış");
+        }
+
+        var oldAssignedUserId = task.AssignedToUserId;
+
         task.AssignedToUserId = dto.AssignedToUserId;
+        task.UpdatedAt = DateTime.UtcNow;
+
+        var history = new TaskHistory
+        {
+            TaskId = task.Id,
+            ChangedByUserId = userId,
+            ChangeType = "AssignedUserChanged",
+            OldValue = oldAssignedUserId?.ToString(),
+            NewValue = dto.AssignedToUserId.ToString(),
+            Description = "Görevin atandığı kullanıcı değiştirildi.",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.TaskHistories.Add(history);
 
         await _context.SaveChangesAsync();
 
@@ -115,9 +137,16 @@ namespace ProjectManagement.API.Services{
                 throw new ForbiddenException("Bu görevin durumunu değiştirme yetkiniz yok.");
             }
 
+            if (task.Status == status)
+            {
+                throw new ConflictException("Görev zaten bu durumda");
+            }
 
             var oldStatus=task.Status;
+
             task.Status= status;
+            task.UpdatedAt=DateTime.UtcNow;
+
             if (status== ProjectTaskStatus.Done)
             {
                 task.CompletedAt=DateTime.UtcNow;
@@ -130,13 +159,17 @@ namespace ProjectManagement.API.Services{
             {
                 TaskId= id,
                 ChangedByUserId=userId,
-                ChangeType="Status changed",
+                ChangeType="StatusChanged",
                 OldValue= oldStatus.ToString(),
                 NewValue=status.ToString(),
+                Description="Görevin durumu değiştirildi",
                 CreatedAt=DateTime.UtcNow,
             };
+
             _context.TaskHistories.Add(history);
+
             await _context.SaveChangesAsync();
+
             return task.ToResponseDto();
         }
         public async Task<List<TaskResponseDto>> GetTasks(int userId, bool isAdmin)
@@ -154,5 +187,48 @@ namespace ProjectManagement.API.Services{
     return tasks.Select(task => task.ToResponseDto()).ToList();
 
     }
-      }    
+    public async Task<List<TaskHistoryResponseDto>>GetTaskHistories(int taskId,int userId,bool isAdmin)
+        {
+            var task= await _context.Tasks.FirstOrDefaultAsync(task=>task.Id==taskId&& !task.IsDeleted);
+            if (task is null)
+            {
+                throw new NotFoundException ("Görev bulunamadı.");
+            }
+            var project =await _context.Projects.FirstOrDefaultAsync(project=> project.Id==task.ProjectId && !project.IsDeleted);
+
+            if(project is null)
+            {
+                throw new NotFoundException("Görevin bağlı olduğu proje bulunamadı");
+            }
+            var isProjectOwner=project.OwnerId==userId;
+
+            var isActiveMember= await _context.ProjectMembers
+                .AnyAsync(member =>
+                    member.ProjectId==task.ProjectId && 
+                    member.UserId==userId && 
+                    member.IsActive);
+            if (!isAdmin && !isProjectOwner && !isActiveMember)
+            {
+                throw new ForbiddenException("Bu görevin geçmişini görüntüleme yetkiniz yok");
+            }
+            return await _context.TaskHistories
+            .AsNoTracking()
+            .Where(history=> history.TaskId==taskId)
+            .OrderByDescending(history => history.CreatedAt)
+            .Select(history=> new TaskHistoryResponseDto
+            {
+                Id=history.Id,
+                TaskId=history.TaskId,
+                ChangedByUserId= history.ChangedByUserId,
+                ChangedByUserName = history.ChangedByUser.FirstName + " " + history.ChangedByUser.LastName,
+                ChangeType = history.ChangeType,
+                OldValue = history.OldValue,
+                NewValue = history.NewValue,
+                Description = history.Description,
+                CreatedAt = history.CreatedAt
+
+            })
+            .ToListAsync();
+        }
+    }    
     }
