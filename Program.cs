@@ -39,6 +39,7 @@ builder.Services.AddSwaggerGen(c =>
         "ProjectMember" => "4. Proje Üyeleri",
         "Tasks" => "5. Görevler",
         "Comment"=>"6. Yorumlar",
+        "TaskTimeLog"=>"7. Zaman Kayıtları",
     _ => controllerName ?? "Diğer İşlemler"
     };
 
@@ -81,6 +82,7 @@ builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<ProjectMemberService>();
+builder.Services.AddScoped<TaskTimeLogService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 

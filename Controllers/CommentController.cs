@@ -95,5 +95,28 @@ public class CommentController:ControllerBase
 
           return Ok(comment);
         }
+
+      /// <summary>
+      /// Yorumu sil
+      /// </summary>
+
+      [HttpDelete("{commentId}")]
+      public async Task<IActionResult>DeleteComment(
+        int taskId,
+        int commentId)
+        {
+          var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+          var isAdmin = User.IsInRole("Admin");
+
+          await _commentService.DeleteComment(
+            taskId,
+            commentId,
+            userId,
+            isAdmin);
+
+          return NoContent();
+        }
     }
 }

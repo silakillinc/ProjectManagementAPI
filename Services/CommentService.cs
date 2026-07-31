@@ -150,5 +150,42 @@ namespace ProjectManagement.API.Services
 
          return comment.ToResponseDto();
         }
+
+     public async Task DeleteComment(
+        int taskId,
+        int commentId,
+        int userId,
+        bool isAdmin)
+        {
+         var taskExists = await _context.Tasks
+            .AnyAsync(task => task.Id == taskId && !task.IsDeleted);
+
+         if (!taskExists)
+         {
+            throw new NotFoundException("Görev bulunamadı.");
+         }
+
+         var comment = await _context.Comments
+            .FirstOrDefaultAsync(comment =>
+               comment.Id == commentId &&
+               comment.TaskId == taskId &&
+               !comment.IsDeleted);
+
+         if (comment is null)
+         {
+            throw new NotFoundException("Yorum bulunamadı.");
+         }
+
+         if (!isAdmin && comment.UserId != userId)
+         {
+            throw new ForbiddenException(
+               "Bu yorumu silme yetkiniz yok.");
+         }
+
+         comment.IsDeleted = true;
+         comment.UpdatedAt = DateTime.UtcNow;
+
+         await _context.SaveChangesAsync();
+        }
     }   
 }

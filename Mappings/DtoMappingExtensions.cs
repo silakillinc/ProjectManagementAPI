@@ -69,4 +69,17 @@ public static class DtoMappingExtensions
             IsActive = member.IsActive
         };
     }
+    public static TaskTimeLogResponseDto ToResponseDto(this TaskTimeLog timeLog)
+    {
+        return new TaskTimeLogResponseDto
+        {
+            Id=timeLog.Id,
+            TaskId = timeLog.TaskId,
+            UserId = timeLog.UserId,
+            Hours = timeLog.Hours,
+            Description = timeLog.Description,
+            WorkDate = timeLog.WorkDate,
+            CreatedAt = timeLog.CreatedAt
+        };
+    }
 }
