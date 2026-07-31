@@ -22,7 +22,6 @@ namespace ProjectManagement.API.Controllers
 
         public ProjectsController(ProjectService projectService,IValidator<CreateProjectDto> createProjectValidator,IValidator<UpdateProjectDto> updateProjectValidator)
         {
-            
             _projectService=projectService;
             _createProjectValidator = createProjectValidator;
             _updateProjectValidator=updateProjectValidator;
@@ -108,7 +107,7 @@ namespace ProjectManagement.API.Controllers
             return Ok(project);
         }
 
-        /// <summary>
+        /// <summary>c
         /// Projeyi güvenli şekilde sil.
         /// </summary>
         

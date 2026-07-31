@@ -1,0 +1,197 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ProjectManagement.API</name>
+    </assembly>
+    <members>
+        <member name="M:ProjectManagement.API.Controllers.AuthController.Register(ProjectManagement.API.DTOs.RegisterDto)">
+            <summary>
+            Yeni Kullanıcı Kaydı Oluştur
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.AuthController.Login(ProjectManagement.API.DTOs.LoginDto)">
+            <summary>
+            Kullanıcı Girişi
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.CommentController.CreateComment(System.Int32,ProjectManagement.API.DTOs.CreateCommentsDto)">
+            <summary>
+            Yeni yorum ekle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.CommentController.GetComments(System.Int32)">
+            <summary>
+            Göreve ait aktif yorumları listele
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.CommentController.UpdateComment(System.Int32,System.Int32,ProjectManagement.API.DTOs.UpdateCommentDto)">
+            <summary>
+            Yorumu güncelle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.CreateProject(ProjectManagement.API.DTOs.CreateProjectDto)">
+            <summary>
+            Yeni bir proje oluştur
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.GetProjects">
+            <summary>
+            Kullanıcının Erişebildiği Projeler
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.GetProjectsById(System.Int32)">
+            <summary>
+            Proje Detaylarını Görüntüle
+            </summary>
+            
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.UpdateProject(System.Int32,ProjectManagement.API.DTOs.UpdateProjectDto)">
+            <summary>
+             Proje Bilgilerini Güncelle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.ArchiveProject(System.Int32)">
+            <summary>
+            Projeyi Arşivle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectsController.DeleteProjecy(System.Int32)">
+            <summary>c
+            Projeyi güvenli şekilde sil.
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectMemberController.AddProjectMember(ProjectManagement.API.DTOs.AddProjectMemberDto,System.Int32)">
+            <summary>
+            Projeye yeni bir ekip üyesi ekle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectMemberController.GetProjectMembers(System.Int32)">
+            <summary>
+            Projedeki aktif üyeleri listele.
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectMemberController.UpdateProjectMemberRole(System.Int32,System.Int32,ProjectManagement.API.DTOs.UpdateProjectMemberRoleDto)">
+            <summary>
+            Proje üyesinin proje içindeki rolünü değiştir.
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.ProjectMemberController.RemoveProjectMember(System.Int32,System.Int32)">
+            <summary>
+            Aktif üyeyi projeden çıkar
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.TasksController.CreateTask(ProjectManagement.API.DTOs.CreateTaskDto)">
+            <summary>
+            Yeni bir görev oluştur.
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.TasksController.GetTasks">
+            <summary>
+            Kullanıcının Erişebildiği Görevleri
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.TasksController.AssignTask(System.Int32,ProjectManagement.API.DTOs.AssignTaskDto)">
+            <summary>
+            Aktif Proje Üyesine Görev Ata
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.TasksController.UpdateStatus(System.Int32,ProjectManagement.API.DTOs.UpdateStatusDto)">
+            <summary>
+            Görev durumunu güncelle
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.TasksController.GetTaskHistories(System.Int32)">
+            <summary>
+            Görev değişiklik geçmişi.
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.UsersController.GetUsers">
+            <summary>
+            Kullanıcıları Listele
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.UsersController.UpdateUserStatus(System.Int32,ProjectManagement.API.DTOs.UpdateUsersStatusDto)">
+            <summary>
+            Kullanıcıyı aktif veya pasif hale getir
+            </summary>
+        </member>
+        <member name="M:ProjectManagement.API.Controllers.UsersController.UpdateUserRole(System.Int32,ProjectManagement.API.DTOs.UpdateUserRoleDto)">
+            <summary>
+            kullanıcının sistem rolünü değiştir
+            </summary>
+        </member>
+        <member name="T:ProjectManagement.API.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:ProjectManagement.API.Migrations.AddDatabaseConstraints">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.AddDatabaseConstraints.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.AddDatabaseConstraints.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ProjectManagement.API.Migrations.AddDatabaseConstraints.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Program">
+            <summary>
+            Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type)">
+            <summary>
+            Generates a documentation comment ID for a type.
+            Example: T:Namespace.Outer+Inner`1 becomes T:Namespace.Outer.Inner`1
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.PropertyInfo)">
+            <summary>
+            Generates a documentation comment ID for a property.
+            Example: P:Namespace.ContainingType.PropertyName or for an indexer P:Namespace.ContainingType.Item(System.Int32)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type,System.String)">
+            <summary>
+            Generates a documentation comment ID for a property given its container type and property name.
+            Example: P:Namespace.ContainingType.PropertyName
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.MethodInfo)">
+            <summary>
+            Generates a documentation comment ID for a method (or constructor).
+            For example:
+              M:Namespace.ContainingType.MethodName(ParamType1,ParamType2)~ReturnType
+              M:Namespace.ContainingType.#ctor(ParamType)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.GetTypeDocId(System.Type,System.Boolean,System.Boolean)">
+            <summary>
+            Generates a documentation ID string for a type.
+            This method handles nested types (replacing '+' with '.'),
+            generic types, arrays, pointers, by-ref types, and generic parameters.
+            The <paramref name="includeGenericArguments"/> flag controls whether
+            constructed generic type arguments are emitted, while <paramref name="omitGenericArity"/>
+            controls whether the generic arity marker (e.g. "`1") is appended.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.NormalizeDocId(System.String)">
+            <summary>
+            Normalizes a documentation comment ID to match the compiler-style format.
+            Strips the return type suffix for ordinary methods but retains it for conversion operators.
+            </summary>
+            <param name="docId">The documentation comment ID to normalize.</param>
+            <returns>The normalized documentation comment ID.</returns>
+        </member>
+    </members>
+</doc>

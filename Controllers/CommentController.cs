@@ -19,11 +19,16 @@ public class CommentController:ControllerBase
     {
         private readonly CommentService _commentService;
         private readonly IValidator<CreateCommentsDto> _commentValidator;
-        public CommentController(CommentService commentService,IValidator<CreateCommentsDto> commentValidator)
+        private readonly IValidator<UpdateCommentDto> _updateCommentValidator;
+        public CommentController(
+          CommentService commentService,
+          IValidator<CreateCommentsDto> commentValidator,
+          IValidator<UpdateCommentDto> updateCommentValidator)
         {
             
-            _commentService=commentService;
-            _commentValidator = commentValidator;
+          _commentService=commentService;
+          _commentValidator = commentValidator;
+          _updateCommentValidator = updateCommentValidator;
         }  
 
       /// <summary>
@@ -42,6 +47,53 @@ public class CommentController:ControllerBase
           var comment= await _commentService.CreateComment(taskId,userId,dto,isAdmin);
           
           return Ok (comment);
-        }  
+        }
+
+      /// <summary>
+      /// Göreve ait aktif yorumları listele
+      /// </summary>
+
+      [HttpGet]
+      public async Task<IActionResult>GetComments(int taskId)
+        {
+          var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+          var isAdmin = User.IsInRole("Admin");
+
+          var comments = await _commentService.GetComments(
+            taskId,
+            userId,
+            isAdmin);
+
+          return Ok(comments);
+        }
+
+      /// <summary>
+      /// Yorumu güncelle
+      /// </summary>
+
+      [HttpPut("{commentId}")]
+      public async Task<IActionResult>UpdateComment(
+        int taskId,
+        int commentId,
+        UpdateCommentDto dto)
+        {
+          await _updateCommentValidator.ValidateAndThrowAsync(dto);
+
+          var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+          var isAdmin = User.IsInRole("Admin");
+
+          var comment = await _commentService.UpdateComment(
+            taskId,
+            commentId,
+            userId,
+            dto,
+            isAdmin);
+
+          return Ok(comment);
+        }
     }
 }
