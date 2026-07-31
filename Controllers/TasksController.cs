@@ -18,13 +18,15 @@ private readonly TaskService _taskService;
 private readonly IValidator<CreateTaskDto> _createTaskValidator;
 private readonly IValidator<AssignTaskDto> _assignTaskValidator;
 private readonly IValidator<UpdateStatusDto> _updateStatusValidator;
+private readonly IValidator<UpdateTaskDto> _updateTaskValidator;
 public TasksController(TaskService taskService,IValidator<CreateTaskDto> createTaskValidator,IValidator<AssignTaskDto> assignTaskValidator,
-    IValidator<UpdateStatusDto> updateStatusValidator)
+    IValidator<UpdateStatusDto> updateStatusValidator,IValidator<UpdateTaskDto> updateTaskValidator)
 {
 _taskService = taskService;
 _createTaskValidator = createTaskValidator;
 _assignTaskValidator = assignTaskValidator;
 _updateStatusValidator = updateStatusValidator;
+_updateTaskValidator = updateTaskValidator;
 }
 
 /// <summary>
@@ -113,6 +115,54 @@ public async Task<IActionResult>GetTaskHistories(int taskId)
 
       return Ok(histories);     
     }
+/// <summary>
+/// Görev detayını görüntüle
+/// </summary>
+/// 
+[HttpGet("{id}")]
+public async Task<IActionResult> GetTaskById(int id)
+    {
+       var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-  }
-    } 
+       var isAdmin = User.IsInRole("Admin");
+
+       var task = await _taskService.GetTaskById(id,userId,isAdmin);  
+       return Ok(task);
+    }
+/// <summary>
+/// Görev bilgilerini güncelle
+/// </summary>
+
+[HttpPut("{id}")]
+[Authorize(Roles = "Admin,ProjectManager")]
+
+public async Task<IActionResult> UpdateTask(int id,UpdateTaskDto dto)
+
+      {
+        await _updateTaskValidator.ValidateAndThrowAsync(dto);
+
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var isAdmin = User.IsInRole("Admin");
+
+        var task = await _taskService.UpdateTask(id,dto,userId,isAdmin);
+
+        return Ok(task);    
+      }
+/// <summary>
+/// Görevi sil.
+/// </summary>
+/// 
+[HttpDelete("{id}")]
+[Authorize(Roles = "Admin,ProjectManager")]
+public async Task<IActionResult> DeleteTask(int id)
+        {
+          var userId=int.Parse( User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+          var isAdmin = User.IsInRole("Admin");
+
+          await _taskService.DeleteTask(id, userId, isAdmin);
+
+          return NoContent();
+        }
+    }
+  } 

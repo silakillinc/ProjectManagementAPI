@@ -26,7 +26,7 @@ namespace ProjectManagement.API.Services{
             if(project==null) throw new NotFoundException("Proje bulunamadi");
             if(!isAdmin && project.OwnerId != userId)
             {
-              throw new ForbiddenException("Bu projede görev oluşturma yetkiniz yok.");  
+              throw new ForbiddenException("Bu projede görev oluşturma yetkiniz yok.");
             }
 
             if (dto.DueDate < project.StartDate)
@@ -111,7 +111,7 @@ namespace ProjectManagement.API.Services{
         await _context.SaveChangesAsync();
 
         return task.ToResponseDto();
-            
+
         }
         public async Task<TaskResponseDto> UpdateStatus(int id, ProjectTaskStatus status,int userId,bool isAdmin)
         {
@@ -204,8 +204,8 @@ namespace ProjectManagement.API.Services{
 
             var isActiveMember= await _context.ProjectMembers
                 .AnyAsync(member =>
-                    member.ProjectId==task.ProjectId && 
-                    member.UserId==userId && 
+                    member.ProjectId==task.ProjectId &&
+                    member.UserId==userId &&
                     member.IsActive);
             if (!isAdmin && !isProjectOwner && !isActiveMember)
             {
@@ -230,5 +230,116 @@ namespace ProjectManagement.API.Services{
             })
             .ToListAsync();
         }
-    }    
+        public async Task<TaskResponseDto> GetTaskById(int id,int userId,bool isAdmin)
+        {
+             var task = await _context.Tasks.AsNoTracking()
+            .FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
+            if(task is null)
+            {
+                throw new NotFoundException("Görev bulunamadı.");
+            }
+            var project =await _context.Projects.AsNoTracking()
+            .FirstOrDefaultAsync(project=>project.Id==task.ProjectId && !project.IsDeleted);
+
+            if (project is null)
+            {
+                throw new NotFoundException("Görevin bağlı olduğu proje bulunamadı.");
+            }
+            var isProjectOwner = project.OwnerId == userId;
+            var isActiveMember = await _context.ProjectMembers.AnyAsync(member =>
+            member.ProjectId == task.ProjectId &&
+            member.UserId == userId &&
+            member.IsActive);
+
+             if (!isAdmin && !isProjectOwner && !isActiveMember)
+            {
+            throw new ForbiddenException("Bu görevi görüntüleme yetkiniz yok.");
+            }
+            return task.ToResponseDto();
+        }
+        public async Task<TaskResponseDto> UpdateTask(int id,UpdateTaskDto dto,int userId,bool isAdmin)
+    {
+            var task = await _context.Tasks.FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
+
+        if (task is null)
+    {
+        throw new NotFoundException("Görev bulunamadı.");
+    }
+        var project = await _context.Projects.FirstOrDefaultAsync(project =>project.Id == task.ProjectId &&!project.IsDeleted);
+
+        if (project is null)
+    {
+        throw new NotFoundException("Görevin bağlı olduğu proje bulunamadı.");
+    }
+
+        if (!isAdmin && project.OwnerId != userId)
+    {
+        throw new ForbiddenException("Bu görevi güncelleme yetkiniz yok.");
+    }
+
+    if (dto.DueDate.HasValue &&dto.DueDate.Value < project.StartDate)
+    {
+        throw new BadRequestException("Görev teslim tarihi proje başlangıcından önce olamaz.");
+    }
+    var hasChanges =task.Title != dto.Title ||task.Description != dto.Description ||
+        task.Priority != dto.Priority ||
+        task.DueDate != dto.DueDate ||
+        task.EstimatedHours != dto.EstimatedHours;
+
+        if (!hasChanges)
+    {
+        throw new ConflictException("Görev bilgilerinde herhangi bir değişiklik yapılmadı.");
+    }
+
+    var oldPriority = task.Priority;
+
+    task.Title = dto.Title;
+    task.Description = dto.Description;
+    task.Priority = dto.Priority;
+    task.DueDate = dto.DueDate;
+    task.EstimatedHours = dto.EstimatedHours;
+    task.UpdatedAt = DateTime.UtcNow;
+
+    if (oldPriority != dto.Priority)
+    {
+        var history = new TaskHistory
+        {
+            TaskId = task.Id,
+            ChangedByUserId = userId,
+            ChangeType = "PriorityChanged",
+            OldValue = oldPriority.ToString(),
+            NewValue = dto.Priority.ToString(),
+            Description = "Görevin önceliği değiştirildi.",
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.TaskHistories.Add(history);
+    }
+
+    await _context.SaveChangesAsync();
+
+    return task.ToResponseDto();
+}
+public async Task DeleteTask(int id, int userId, bool isAdmin)
+        {
+          var task = await _context.Tasks.FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
+          if (task is null)
+            {
+                throw new NotFoundException("Görev bulunamadı.");
+            }
+            var project = await _context.Projects.FirstOrDefaultAsync(project =>project.Id == task.ProjectId &&!project.IsDeleted);
+            if(project is null)
+            {
+                throw new NotFoundException("Görevin bağlı olduğu proje bulunamadı.");
+            }
+            if(!isAdmin &&project.OwnerId != userId)
+            {
+                throw new ForbiddenException("Bu görevi silme yetkiniz yok");
+            }
+            task.IsDeleted=true;
+            task.UpdatedAt=DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
+    }
     }
