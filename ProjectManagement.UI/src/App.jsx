@@ -160,6 +160,7 @@ function App() {
   const [showInactiveUsers, setShowInactiveUsers] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [projectMembers, setProjectMembers] = useState([])
+  const [availableProjectUsers, setAvailableProjectUsers] = useState([])
   const [membersByProject, setMembersByProject] = useState({})
   const [memberMessage, setMemberMessage] = useState('')
   const [isMemberLoading, setIsMemberLoading] = useState(false)
@@ -1264,6 +1265,27 @@ function App() {
       }
 
       setProjectMembers(data)
+
+      if (canManageMembers) {
+        const availableUsersResponse = await fetch(
+          `http://localhost:5050/api/projects/${selectedProjectId}/members/available-users`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        )
+        const availableUsersData = await availableUsersResponse.json()
+
+        if (!availableUsersResponse.ok) {
+          setMemberMessage(
+            availableUsersData.message || 'Eklenebilecek kullanıcılar alınamadı.',
+          )
+          return
+        }
+
+        setAvailableProjectUsers(availableUsersData)
+      }
     } catch {
       setMemberMessage('Backend sunucusuna bağlanılamadı.')
     } finally {
@@ -1311,6 +1333,9 @@ function App() {
       }
 
       setProjectMembers((currentMembers) => [...currentMembers, data])
+      setAvailableProjectUsers((currentUsers) =>
+        currentUsers.filter((user) => user.id !== Number(newMemberUserId)),
+      )
       setNewMemberUserId('')
       setNewMemberRole('Member')
       setMemberMessage('Üye projeye eklendi.')
@@ -1432,6 +1457,7 @@ function App() {
     setShowInactiveUsers(false)
     setSelectedProjectId('')
     setProjectMembers([])
+    setAvailableProjectUsers([])
     setMembersByProject({})
     setMemberMessage('')
     setNewMemberUserId('')
@@ -1709,6 +1735,7 @@ function App() {
                   onChange={(event) => {
                     setSelectedProjectId(event.target.value)
                     setProjectMembers([])
+                    setAvailableProjectUsers([])
                     setMemberMessage('')
                     setNewMemberUserId('')
                     setNewMemberRole('Member')
@@ -1738,15 +1765,24 @@ function App() {
                 <form className="member-form" onSubmit={addProjectMember}>
                   <h3>Projeye Üye Ekle</h3>
 
-                  <label htmlFor="new-member-user-id">Kullanıcı ID</label>
-                  <input
+                  <label htmlFor="new-member-user-id">Kullanıcı</label>
+                  <select
                     id="new-member-user-id"
-                    type="number"
-                    min="1"
                     value={newMemberUserId}
                     onChange={(event) => setNewMemberUserId(event.target.value)}
                     required
-                  />
+                  >
+                    <option value="">Kullanıcı seçiniz</option>
+                    {availableProjectUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} - {user.email}
+                      </option>
+                    ))}
+                  </select>
+
+                  {availableProjectUsers.length === 0 && (
+                    <p>Bu projeye eklenebilecek aktif kullanıcı bulunmuyor.</p>
+                  )}
 
                   <label htmlFor="new-member-role">Proje rolü</label>
                   <select
@@ -1759,7 +1795,9 @@ function App() {
                     <option value="Viewer">Viewer</option>
                   </select>
 
-                  <button type="submit">Üye Ekle</button>
+                  <button type="submit" disabled={!newMemberUserId}>
+                    Üye Ekle
+                  </button>
                 </form>
               )}
 

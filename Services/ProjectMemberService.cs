@@ -94,6 +94,44 @@ namespace ProjectManagement.API.Services
             .OrderBy(member=>member.Id).ToListAsync();
             return members.Select(member=>member.ToResponseDto()).ToList();
         }
+        public async Task<List<UserResponseDto>> GetAvailableUsers(int projectId, int userId, bool isAdmin)
+        {
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project => project.Id == projectId && !project.IsDeleted);
+
+            if (project is null)
+            {
+                throw new NotFoundException("Proje bulunamadı.");
+            }
+
+            if (!isAdmin && project.OwnerId != userId)
+            {
+                throw new ForbiddenException("Bu projeye üye ekleme yetkiniz yok.");
+            }
+
+            return await _context.Users
+                .Where(user =>
+                    user.IsActive &&
+                    !user.IsDeleted &&
+                    !_context.ProjectMembers.Any(member =>
+                        member.ProjectId == projectId &&
+                        member.UserId == user.Id &&
+                        member.IsActive))
+                .OrderBy(user => user.FirstName)
+                .ThenBy(user => user.LastName)
+                .Select(user => new UserResponseDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Role = user.Role.ToString(),
+                    Department = user.Department,
+                    IsActive = user.IsActive,
+                    CreatedAt = user.CreatedAt
+                })
+                .ToListAsync();
+        }
         public async Task<ProjectMemberResponseDto>UpdateProjectMemberRole(int projectId, int memberId, UpdateProjectMemberRoleDto dto,
         int userId, bool isAdmin)
         {

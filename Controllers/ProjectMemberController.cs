@@ -58,6 +58,20 @@ namespace ProjectManagement.API.Controllers
             return Ok(members);
         }
         ///<summary>
+        ///Projeye eklenebilecek aktif kullanıcıları ad ve e-posta bilgileriyle listele.
+        ///</summary>
+        [HttpGet("available-users")]
+        [Authorize(Roles = "Admin,ProjectManager")]
+        public async Task<IActionResult> GetAvailableUsers(int projectId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var isAdmin = User.IsInRole("Admin");
+
+            var users = await _projectMemberService.GetAvailableUsers(projectId, userId, isAdmin);
+
+            return Ok(users);
+        }
+        ///<summary>
         ///Proje üyesinin proje içindeki rolünü değiştir.
         ///</summary>
         [HttpPatch("{memberId}/role")]
