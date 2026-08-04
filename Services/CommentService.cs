@@ -42,11 +42,15 @@ namespace ProjectManagement.API.Services
          throw new ForbiddenException("Bu göreve yorum ekleme yetkiniz yok.");
       }
 
+         var commentUser = await _context.Users
+            .FirstAsync(user => user.Id == userId);
+
          var comment=new Comment{
         
          Content=dto.Content,
          TaskId=taskId,
          UserId=userId,
+         User=commentUser,
          CreatedAt=DateTime.UtcNow
       }; 
         _context.Comments.Add(comment);
@@ -94,6 +98,7 @@ namespace ProjectManagement.API.Services
 
          var comments = await _context.Comments
             .AsNoTracking()
+            .Include(comment => comment.User)
             .Where(comment =>
                comment.TaskId == taskId &&
                !comment.IsDeleted)
@@ -121,6 +126,7 @@ namespace ProjectManagement.API.Services
          }
 
          var comment = await _context.Comments
+            .Include(comment => comment.User)
             .FirstOrDefaultAsync(comment =>
                comment.Id == commentId &&
                comment.TaskId == taskId &&

@@ -3,15 +3,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
   background-color: #f1f5f9;
+  background-image:
+    linear-gradient(rgba(241, 245, 249, 0.18), rgba(241, 245, 249, 0.18)),
+    url('/login-background.png');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .login-box {
   width: 360px;
   padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 10px;
-  background-color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14px 35px rgba(30, 58, 95, 0.18);
+  backdrop-filter: blur(6px);
 }
 
 .login-box h1 {
@@ -62,7 +71,12 @@
 }
 
 .message {
+  max-width: 620px;
   margin-top: 16px;
+  padding: 11px 14px;
+  border-left: 4px solid #2563eb;
+  border-radius: 6px;
+  background-color: #eff6ff;
   color: #1e3a5f;
 }
 
@@ -94,7 +108,27 @@
   cursor: pointer;
 }
 
+.user-area {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 14px;
+}
+
+.user-info strong {
+  margin-top: 3px;
+  color: #bfdbfe;
+}
+
 .dashboard-content {
+  max-width: 1500px;
+  margin: 0 auto;
   padding: 40px;
 }
 
@@ -106,7 +140,8 @@
 }
 
 .menu-card {
-  width: 260px;
+  flex: 1 1 240px;
+  max-width: 310px;
   min-height: 150px;
   padding: 20px;
   border: none;
@@ -124,7 +159,13 @@ button.menu-card {
 }
 
 button.menu-card:hover {
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button.menu-card.active {
+  border: 2px solid #2563eb;
+  background-color: #eff6ff;
 }
 
 .menu-card h3 {
@@ -135,20 +176,22 @@ button.menu-card:hover {
 
 .content-section {
   margin-top: 40px;
+  padding-top: 8px;
+  border-top: 1px solid #dbe1e8;
 }
 
 .item-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 18px;
 }
 
 .item-card {
-  width: 280px;
   padding: 20px;
   border: 1px solid #dbe1e8;
   border-radius: 8px;
   background-color: white;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 .item-card h3 {
@@ -158,9 +201,110 @@ button.menu-card:hover {
 
 .item-card p {
   color: #475569;
+  line-height: 1.45;
 }
 
-.time-log-controls {
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background-color: #e2e8f0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.task-status-1,
+.project-status {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.task-status-2,
+.priority-2 {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.task-status-3 {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.priority-0 {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.priority-1 {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.priority-3 {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-active {
+  color: #15803d;
+  font-weight: bold;
+}
+
+.status-passive {
+  color: #b91c1c;
+  font-weight: bold;
+}
+
+.user-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #475569;
+}
+
+.user-filter input {
+  width: 17px;
+  height: 17px;
+}
+
+.role-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  color: #475569;
+  font-weight: bold;
+}
+
+.role-field select {
+  padding: 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: white;
+  font: inherit;
+}
+
+.user-action-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1e3a5f;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.user-action-button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.time-log-controls,
+.member-controls {
   max-width: 420px;
   display: flex;
   flex-direction: column;
@@ -168,28 +312,190 @@ button.menu-card:hover {
   margin-bottom: 24px;
 }
 
-.time-log-controls label {
+.time-log-controls label,
+.member-controls label {
   font-weight: bold;
 }
 
 .time-log-controls select,
-.time-log-controls button {
+.time-log-controls button,
+.member-controls select,
+.member-controls button {
   padding: 11px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font: inherit;
 }
 
-.time-log-controls button {
+.time-log-controls button,
+.member-controls button {
   border: none;
   background-color: #2563eb;
   color: white;
   cursor: pointer;
 }
 
-.time-log-controls button:disabled {
+.time-log-controls button:disabled,
+.member-controls button:disabled {
   background-color: #94a3b8;
   cursor: not-allowed;
+}
+
+.member-form,
+.task-form,
+.project-form {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #dbe1e8;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.member-form h3,
+.task-form h3,
+.project-form h3 {
+  margin: 0 0 8px;
+  color: #1e3a5f;
+}
+
+.member-form input,
+.member-form select,
+.member-form button,
+.task-form input,
+.task-form select,
+.task-form textarea,
+.task-form button,
+.project-form input,
+.project-form textarea,
+.project-form button {
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.member-form button,
+.task-form button,
+.project-form button {
+  margin-top: 6px;
+  border: none;
+  background-color: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.remove-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: none;
+  border-radius: 6px;
+  background-color: #b91c1c;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.archive-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: none;
+  border-radius: 6px;
+  background-color: #b45309;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.task-status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  color: #475569;
+  font-weight: bold;
+}
+
+.task-status-field select {
+  padding: 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: white;
+  font: inherit;
+}
+
+.task-detail {
+  max-width: 600px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.task-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.task-detail-header h3 {
+  margin: 0;
+  color: #1e3a5f;
+}
+
+.task-detail-header button {
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #64748b;
+  color: white;
+  cursor: pointer;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  border-left: 4px solid #2563eb;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  color: #475569;
+}
+
+.project-detail-members {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.project-detail-member {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  color: #475569;
+}
+
+.project-detail-member strong {
+  color: #1e3a5f;
 }
 
 .total-hours {
@@ -198,6 +504,15 @@ button.menu-card:hover {
 }
 
 @media (max-width: 700px) {
+  .login-page {
+    background-position: 46% center;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 360px;
+  }
+
   .dashboard-header,
   .dashboard-content {
     padding: 20px;
@@ -206,5 +521,14 @@ button.menu-card:hover {
   .menu-card,
   .item-card {
     width: 100%;
+    max-width: none;
+  }
+
+  .dashboard-header h1 {
+    font-size: 19px;
+  }
+
+  .user-info {
+    display: none;
   }
 }

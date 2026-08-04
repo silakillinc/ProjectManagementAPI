@@ -32,6 +32,10 @@ public static class DtoMappingExtensions
             Description = task.Description,
             ProjectId = task.ProjectId,
             AssignedToUserId = task.AssignedToUserId,
+            AssignedToUserName = task.AssignedToUser is null
+                ? null
+                : task.AssignedToUser.FirstName + " " + task.AssignedToUser.LastName,
+            AssignedToUserEmail = task.AssignedToUser?.Email,
             CreatedByUserId = task.CreatedByUserId,
             Status = task.Status.ToString(),
             Priority = task.Priority.ToString(),
@@ -51,6 +55,8 @@ public static class DtoMappingExtensions
             Content = comment.Content,
             TaskId = comment.TaskId,
             UserId = comment.UserId,
+            UserName = comment.User.FirstName + " " + comment.User.LastName,
+            Email = comment.User.Email,
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt
         };
@@ -64,6 +70,8 @@ public static class DtoMappingExtensions
             Id = member.Id,
             ProjectId = member.ProjectId,
             UserId = member.UserId,
+            UserName = member.User.FirstName + " " + member.User.LastName,
+            Email = member.User.Email,
             Role = member.Role.ToString(),
             JoinedAt = member.JoinedAt,
             IsActive = member.IsActive
@@ -76,6 +84,8 @@ public static class DtoMappingExtensions
             Id=timeLog.Id,
             TaskId = timeLog.TaskId,
             UserId = timeLog.UserId,
+            UserName = timeLog.User.FirstName + " " + timeLog.User.LastName,
+            UserEmail = timeLog.User.Email,
             Hours = timeLog.Hours,
             Description = timeLog.Description,
             WorkDate = timeLog.WorkDate,

@@ -42,7 +42,7 @@ public class TaskTimeLogService
         {
             throw new ForbiddenException("Bu göreve zaman kaydı ekleme yetkiniz yok.");
         }
-         var timeLog = new TaskTimeLog
+        var timeLog = new TaskTimeLog
         {
             TaskId = taskId,
             UserId = userId,
@@ -51,6 +51,8 @@ public class TaskTimeLogService
             WorkDate = dto.WorkDate,
             CreatedAt = DateTime.UtcNow
         };
+        timeLog.User = await _context.Users
+            .FirstAsync(user => user.Id == userId);
         _context.TaskTimeLogs.Add(timeLog);
 
         await _context.SaveChangesAsync();
@@ -78,8 +80,9 @@ public class TaskTimeLogService
         {
             throw new ForbiddenException("Bu görevin zaman kayıtlarını görüntüleme yetkiniz yok.");
         }
-        var query = _context.TaskTimeLogs
+    var query = _context.TaskTimeLogs
     .AsNoTracking()
+    .Include(timeLog => timeLog.User)
     .Where(timeLog => timeLog.TaskId == taskId);
 
     if (timeLogUserId.HasValue)

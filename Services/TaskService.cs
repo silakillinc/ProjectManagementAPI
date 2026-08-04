@@ -57,12 +57,22 @@ namespace ProjectManagement.API.Services{
             };
             _context.Tasks.Add(projectTask);
             await _context.SaveChangesAsync();
+
+            if (projectTask.AssignedToUserId.HasValue)
+            {
+                projectTask.AssignedToUser = await _context.Users
+                    .AsNoTracking()
+                    .FirstAsync(user => user.Id == projectTask.AssignedToUserId.Value);
+            }
+
             return projectTask.ToResponseDto();
         }
 
         public async Task<TaskResponseDto> AssignTask(int id, AssignTaskDto dto, int userId,bool isAdmin)
         {
-            var task = await _context.Tasks.FirstOrDefaultAsync(task=>task.Id== id && !task.IsDeleted);
+            var task = await _context.Tasks
+                .Include(task => task.AssignedToUser)
+                .FirstOrDefaultAsync(task=>task.Id== id && !task.IsDeleted);
 
             if(task == null) throw new NotFoundException("Gorev bulunamadi.");
 
@@ -93,6 +103,8 @@ namespace ProjectManagement.API.Services{
         var oldAssignedUserId = task.AssignedToUserId;
 
         task.AssignedToUserId = dto.AssignedToUserId;
+        task.AssignedToUser = await _context.Users
+            .FirstAsync(user => user.Id == dto.AssignedToUserId);
         task.UpdatedAt = DateTime.UtcNow;
 
         var history = new TaskHistory
@@ -115,7 +127,9 @@ namespace ProjectManagement.API.Services{
         }
         public async Task<TaskResponseDto> UpdateStatus(int id, ProjectTaskStatus status,int userId,bool isAdmin)
         {
-            var task = await _context.Tasks.FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
+            var task = await _context.Tasks
+                .Include(task => task.AssignedToUser)
+                .FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
 
             if (task == null) throw new NotFoundException("Gorev bulunamadi.");
 
@@ -175,7 +189,10 @@ namespace ProjectManagement.API.Services{
         public async Task<List<TaskResponseDto>> GetTasks(int userId, bool isAdmin)
     {
 
-        var query = _context.Tasks.AsNoTracking().Where(task => !task.IsDeleted);
+        var query = _context.Tasks
+            .AsNoTracking()
+            .Include(task => task.AssignedToUser)
+            .Where(task => !task.IsDeleted);
         if (!isAdmin)
     {
         query = query.Where(task =>_context.Projects.Any(project =>project.Id == task.ProjectId &&!project.IsDeleted &&project.OwnerId == userId)
@@ -233,6 +250,7 @@ namespace ProjectManagement.API.Services{
         public async Task<TaskResponseDto> GetTaskById(int id,int userId,bool isAdmin)
         {
              var task = await _context.Tasks.AsNoTracking()
+            .Include(task => task.AssignedToUser)
             .FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
             if(task is null)
             {
@@ -259,7 +277,9 @@ namespace ProjectManagement.API.Services{
         }
         public async Task<TaskResponseDto> UpdateTask(int id,UpdateTaskDto dto,int userId,bool isAdmin)
     {
-            var task = await _context.Tasks.FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
+            var task = await _context.Tasks
+                .Include(task => task.AssignedToUser)
+                .FirstOrDefaultAsync(task =>task.Id == id &&!task.IsDeleted);
 
         if (task is null)
     {

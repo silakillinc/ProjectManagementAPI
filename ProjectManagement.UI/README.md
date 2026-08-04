@@ -1,16 +1,42 @@
-# React + Vite
+# Project Management UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Proje Yönetim Sistemi için React ve Vite kullanılarak geliştirilen frontend uygulamasıdır.
 
-Currently, two official plugins are available:
+## Kullanılan Teknolojiler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React
+- Vite
+- JavaScript
+- CSS
 
-## React Compiler
+## Kurulum
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Frontend klasörüne geçin:
 
-## Expanding the ESLint configuration
+```bash
+cd ProjectManagement.UI
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Gerekli paketleri yükleyin:
+
+```bash
+npm install
+```
+
+Uygulamayı çalıştırın:
+
+```bash
+npm run dev
+```
+
+Frontend uygulaması varsayılan olarak aşağıdaki adreste çalışır:
+
+```text
+http://localhost:5173
+```
+
+Frontend’in düzgün çalışabilmesi için backend uygulamasının da aşağıdaki adreste çalışması gerekir:
+
+```text
+http://localhost:5050
+```

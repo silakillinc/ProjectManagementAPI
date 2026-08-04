@@ -7,6 +7,8 @@ public class TaskResponseDto
     public string? Description { get; set; }
     public int ProjectId { get; set; }
     public int? AssignedToUserId { get; set; }
+    public string? AssignedToUserName { get; set; }
+    public string? AssignedToUserEmail { get; set; }
     public int CreatedByUserId { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Priority { get; set; } = string.Empty;
