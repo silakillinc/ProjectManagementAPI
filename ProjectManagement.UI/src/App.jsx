@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 
 const taskStatusLabels = {
@@ -48,6 +49,16 @@ function getProjectStatusLabel(status) {
   return projectStatusLabels[status] ?? status
 }
 
+function getInitials(name) {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+}
+
 function getTaskStatusClass(status) {
   const value = typeof status === 'number' ? status : { ToDo: 0, InProgress: 1, InReview: 2, Done: 3 }[status]
   return `status-badge task-status-${value}`
@@ -58,7 +69,27 @@ function getPriorityClass(priority) {
   return `status-badge priority-${value}`
 }
 
-function getHistoryValue(changeType, value) {
+function NavigationIcon({ name }) {
+  const paths = {
+    overview: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
+    projects: <><path d="M3 7h5l2 2h11v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2" /></>,
+    tasks: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m8 9 2 2 4-4M8 15h8" /></>,
+    members: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+    comments: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8M8 13h5" /></>,
+    timeLogs: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    users: <><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 8h4M19 6v4" /></>,
+  }
+
+  return (
+    <span className="menu-card-icon" aria-hidden="true">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {paths[name]}
+      </svg>
+    </span>
+  )
+}
+
+function getHistoryValue(changeType, value, getUserName) {
   if (!value) {
     return 'Boş'
   }
@@ -69,6 +100,10 @@ function getHistoryValue(changeType, value) {
 
   if (changeType === 'PriorityChanged') {
     return getTaskPriorityLabel(value)
+  }
+
+  if (changeType === 'AssignedUserChanged') {
+    return getUserName(value)
   }
 
   return value
@@ -105,6 +140,47 @@ function getUserFromToken(token) {
 }
 
 function App() {
+
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const sectionRoutes = {
+    projects: '/projects',
+    tasks: '/tasks',
+    members: '/members',
+    timeLogs: '/time-logs',
+    comments: '/comments',
+    users: '/users',
+  }
+
+  const routeSections = {
+    '/projects': 'projects',
+    '/tasks': 'tasks',
+    '/members': 'members',
+    '/time-logs': 'timeLogs',
+    '/comments': 'comments',
+    '/users': 'users',
+  }
+
+  const activeSection = routeSections[location.pathname] || ''
+
+  const pageTitles = {
+    projects: 'Projeler',
+    tasks: 'Görevler',
+    members: 'Proje Üyeleri',
+    timeLogs: 'Zaman Kayıtları',
+    comments: 'Yorumlar',
+    users: 'Kullanıcı Yönetimi',
+  }
+  
+  const currentPageTitle = pageTitles[activeSection] || 'Genel Bakış'
+  const todayText = new Intl.DateTimeFormat('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+  }).format(new Date())
+
   const [isRegisterMode, setIsRegisterMode] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -121,6 +197,7 @@ function App() {
 
   const [projects, setProjects] = useState([])
   const [projectMessage, setProjectMessage] = useState('')
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
   const [newProjectStartDate, setNewProjectStartDate] = useState('')
@@ -136,6 +213,7 @@ function App() {
   const [editProjectStatus, setEditProjectStatus] = useState('0')
   const [tasks, setTasks] = useState([])
   const [taskMessage, setTaskMessage] = useState('')
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false)
   const [selectedTaskDetail, setSelectedTaskDetail] = useState(null)
   const [taskActionMessage, setTaskActionMessage] = useState('')
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -164,22 +242,24 @@ function App() {
   const [membersByProject, setMembersByProject] = useState({})
   const [memberMessage, setMemberMessage] = useState('')
   const [isMemberLoading, setIsMemberLoading] = useState(false)
+  const [showMemberModal, setShowMemberModal] = useState(false)
   const [newMemberUserId, setNewMemberUserId] = useState('')
   const [newMemberRole, setNewMemberRole] = useState('Member')
   const [selectedTaskId, setSelectedTaskId] = useState('')
   const [timeLogResult, setTimeLogResult] = useState(null)
   const [timeLogMessage, setTimeLogMessage] = useState('')
   const [isTimeLogLoading, setIsTimeLogLoading] = useState(false)
+  const [showTimeLogModal, setShowTimeLogModal] = useState(false)
   const [newTimeLogHours, setNewTimeLogHours] = useState('')
   const [newTimeLogDescription, setNewTimeLogDescription] = useState('')
   const [newTimeLogWorkDate, setNewTimeLogWorkDate] = useState('')
   const [commentTaskId, setCommentTaskId] = useState('')
   const [comments, setComments] = useState([])
   const [commentMessage, setCommentMessage] = useState('')
+  const [showCommentModal, setShowCommentModal] = useState(false)
   const [newCommentContent, setNewCommentContent] = useState('')
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editingCommentContent, setEditingCommentContent] = useState('')
-  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -319,8 +399,8 @@ function App() {
 
       localStorage.setItem('token', data.token)
       setCurrentUser(getUserFromToken(data.token))
-      setActiveSection('')
       setIsLoggedIn(true)
+      navigate('/dashboard')
     } catch {
       setMessage('Backend sunucusuna bağlanılamadı.')
     } finally {
@@ -358,8 +438,8 @@ function App() {
     }
   }
 
-  async function getTimeLogs() {
-    if (!selectedTaskId) {
+  async function getTimeLogs(taskId = selectedTaskId) {
+    if (!taskId) {
       setTimeLogMessage('Önce bir görev seçin.')
       return
     }
@@ -370,7 +450,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://localhost:5050/api/tasks/${selectedTaskId}/time-logs`,
+        `http://localhost:5050/api/tasks/${taskId}/time-logs`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -439,6 +519,7 @@ function App() {
       setNewTimeLogHours('')
       setNewTimeLogDescription('')
       setNewTimeLogWorkDate('')
+      setShowTimeLogModal(false)
       setTimeLogMessage('Zaman kaydı eklendi.')
     } catch {
       setTimeLogMessage('Backend sunucusuna bağlanılamadı.')
@@ -498,6 +579,7 @@ function App() {
 
       setComments((currentComments) => [...currentComments, data])
       setNewCommentContent('')
+      setShowCommentModal(false)
       setCommentMessage('Yorum eklendi.')
     } catch {
       setCommentMessage('Backend sunucusuna bağlanılamadı.')
@@ -608,6 +690,7 @@ function App() {
       setNewProjectDescription('')
       setNewProjectStartDate('')
       setNewProjectEndDate('')
+      setShowCreateProjectModal(false)
       setProjectMessage('Yeni proje oluşturuldu.')
     } catch {
       setProjectMessage('Backend sunucusuna bağlanılamadı.')
@@ -706,6 +789,9 @@ function App() {
         currentProjects.map((project) =>
           project.id === data.id ? data : project,
         ),
+      )
+      setSelectedProjectDetail((detail) =>
+        detail?.id === data.id ? data : detail,
       )
       setSelectedProjectDetail((detail) =>
         detail?.id === data.id ? data : detail,
@@ -885,6 +971,7 @@ function App() {
       setNewTaskPriority('1')
       setNewTaskDueDate('')
       setNewTaskEstimatedHours('0')
+      setShowCreateTaskModal(false)
       setTaskActionMessage('Yeni görev oluşturuldu.')
     } catch {
       setTaskActionMessage('Backend sunucusuna bağlanılamadı.')
@@ -1227,8 +1314,8 @@ function App() {
     }
   }
 
-  async function getProjectMembers() {
-    if (!selectedProjectId) {
+  async function getProjectMembers(projectId = selectedProjectId) {
+    if (!projectId) {
       setMemberMessage('Önce bir proje seçin.')
       return
     }
@@ -1239,7 +1326,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://localhost:5050/api/projects/${selectedProjectId}/members`,
+        `http://localhost:5050/api/projects/${projectId}/members`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1266,9 +1353,16 @@ function App() {
 
       setProjectMembers(data)
 
-      if (canManageMembers) {
+      const selectedMemberProject = projects.find(
+        (project) => project.id === Number(projectId),
+      )
+      const canManageSelectedProject =
+        currentUser?.role === 'Admin' ||
+        Number(currentUser?.id) === selectedMemberProject?.ownerId
+
+      if (canManageSelectedProject) {
         const availableUsersResponse = await fetch(
-          `http://localhost:5050/api/projects/${selectedProjectId}/members/available-users`,
+          `http://localhost:5050/api/projects/${projectId}/members/available-users`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1338,6 +1432,7 @@ function App() {
       )
       setNewMemberUserId('')
       setNewMemberRole('Member')
+      setShowMemberModal(false)
       setMemberMessage('Üye projeye eklendi.')
     } catch {
       setMemberMessage('Backend sunucusuna bağlanılamadı.')
@@ -1429,7 +1524,7 @@ function App() {
     localStorage.removeItem('token')
     setIsLoggedIn(false)
     setCurrentUser(null)
-    setActiveSection('')
+    navigate('/')
     setProjects([])
     setNewProjectName('')
     setNewProjectDescription('')
@@ -1483,9 +1578,7 @@ function App() {
   }
 
   function toggleSection(sectionName) {
-    setActiveSection((currentSection) =>
-      currentSection === sectionName ? '' : sectionName,
-    )
+    navigate(sectionRoutes[sectionName])
   }
 
   const selectedProject = projects.find(
@@ -1501,6 +1594,35 @@ function App() {
     )
 
     return project?.name || `Proje ${projectId}`
+  }
+
+  function getUserNameById(userId) {
+    const numericUserId = Number(userId)
+
+    if (!Number.isFinite(numericUserId)) {
+      return 'Atanmamış'
+    }
+
+    if (numericUserId === Number(currentUser?.id)) {
+      return currentUser?.name || currentUser?.email || `Kullanıcı ${userId}`
+    }
+
+    const user = users.find((currentUserItem) => currentUserItem.id === numericUserId)
+
+    if (user) {
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      return fullName || user.email || `Kullanıcı ${userId}`
+    }
+
+    const projectMember = Object.values(membersByProject)
+      .flat()
+      .find((member) => member.userId === numericUserId)
+
+    return (
+      projectMember?.userName ||
+      projectMember?.email ||
+      `Kullanıcı ${userId}`
+    )
   }
 
   function isProjectOwner(projectId) {
@@ -1554,37 +1676,94 @@ function App() {
     )
   }
 
+  const overviewStatusGroups = [
+    { key: 0, title: 'Yapılacak', className: 'todo' },
+    { key: 1, title: 'Devam Ediyor', className: 'progress' },
+    { key: 2, title: 'İncelemede', className: 'review' },
+    { key: 3, title: 'Tamamlandı', className: 'done' },
+  ]
+
+  const getTaskStatusValue = (status) =>
+    typeof status === 'number'
+      ? status
+      : { ToDo: 0, InProgress: 1, InReview: 2, Done: 3 }[status]
+
+  const upcomingTasks = tasks
+    .filter((task) => task.dueDate && getTaskStatusValue(task.status) !== 3)
+    .sort((first, second) => new Date(first.dueDate) - new Date(second.dueDate))
+    .slice(0, 4)
+
+  const overviewUserName =
+    currentUser?.name || currentUser?.email?.split('@')[0] || 'Kullanıcı'
+
   if (isLoggedIn) {
     return (
       <div className="dashboard">
         <header className="dashboard-header">
-          <h1>Proje Yönetim Sistemi</h1>
+          <div className="header-brand">
+            <span className="header-brand-mark" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <div>
+              <h1>Proje Yönetim Sistemi</h1>
+              <small>Çalışma alanı</small>
+            </div>
+          </div>
 
           <div className="user-area">
+            <span className="header-user-avatar" aria-hidden="true">
+              {getInitials(currentUser?.name || currentUser?.email)}
+            </span>
             <div className="user-info">
               <span>{currentUser?.email}</span>
               <strong>{currentUser?.role}</strong>
             </div>
 
-            <button type="button" onClick={handleLogout}>
-              Çıkış Yap
+            <button className="header-logout-button" type="button" onClick={handleLogout}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              </svg>
+              <span>Çıkış</span>
             </button>
           </div>
         </header>
 
         <main className="dashboard-content">
-          <h2>Ana Sayfa</h2>
-          <p>Sisteme başarıyla giriş yaptınız.</p>
+          <div className="page-heading">
+            <div>
+              <span>PROJE YÖNETİMİ</span>
+              <h2>{currentPageTitle}</h2>
+            </div>
+            {location.pathname === '/dashboard' && (
+              <p>Projelerinizi, görevlerinizi ve yaklaşan teslimleri takip edin.</p>
+            )}
+          </div>
 
           <div className="menu-cards">
+          <span className="menu-section-label">MENÜ</span>
+          <button
+  className={`menu-card ${
+    location.pathname === '/dashboard' ? 'active' : ''
+  }`}
+  type="button"
+  onClick={() => navigate('/dashboard')}
+>
+  <NavigationIcon name="overview" />
+  <h3>Genel Bakış</h3>
+  <p>Dashboard sayfasına dönün.</p>
+</button>
+
             <button
               className={`menu-card ${activeSection === 'projects' ? 'active' : ''}`}
               type="button"
               onClick={() => toggleSection('projects')}
             >
-              <h3>
-                {activeSection === 'projects' ? 'Projeleri Gizle' : 'Projeler'}
-              </h3>
+              <NavigationIcon name="projects" />
+              <h3>Projeler</h3>
               <p>Erişebildiğiniz projeleri görüntüleyin.</p>
             </button>
 
@@ -1593,23 +1772,19 @@ function App() {
               type="button"
               onClick={() => toggleSection('tasks')}
             >
-              <h3>
-                {activeSection === 'tasks' ? 'Görevleri Gizle' : 'Görevler'}
-              </h3>
+              <NavigationIcon name="tasks" />
+              <h3>Görevler</h3>
               <p>Görevlerinizi görüntüleyin ve yönetin.</p>
             </button>
 
             <button
-              className={`menu-card ${activeSection === 'timeLogs' ? 'active' : ''}`}
+              className={`menu-card ${activeSection === 'members' ? 'active' : ''}`}
               type="button"
-              onClick={() => toggleSection('timeLogs')}
+              onClick={() => toggleSection('members')}
             >
-              <h3>
-                {activeSection === 'timeLogs'
-                  ? 'Zaman Kayıtlarını Gizle'
-                  : 'Zaman Kayıtları'}
-              </h3>
-              <p>Görevlere eklenen çalışma sürelerini görüntüleyin.</p>
+              <NavigationIcon name="members" />
+              <h3>Proje Üyeleri</h3>
+              <p>Projelerdeki aktif ekip üyelerini görüntüleyin.</p>
             </button>
 
             <button
@@ -1617,8 +1792,19 @@ function App() {
               type="button"
               onClick={() => toggleSection('comments')}
             >
+              <NavigationIcon name="comments" />
               <h3>Yorumlar</h3>
               <p>Görevlerdeki yorumları görüntüleyin ve yönetin.</p>
+            </button>
+
+            <button
+              className={`menu-card ${activeSection === 'timeLogs' ? 'active' : ''}`}
+              type="button"
+              onClick={() => toggleSection('timeLogs')}
+            >
+              <NavigationIcon name="timeLogs" />
+              <h3>Zaman Kayıtları</h3>
+              <p>Görevlere eklenen çalışma sürelerini görüntüleyin.</p>
             </button>
 
             {currentUser?.role === 'Admin' && (
@@ -1627,33 +1813,216 @@ function App() {
                 type="button"
                 onClick={() => toggleSection('users')}
               >
+                <NavigationIcon name="users" />
                 <h3>Kullanıcı Yönetimi</h3>
                 <p>Kullanıcıları ve sistem rollerini yönetin.</p>
               </button>
             )}
 
-            <button
-              className={`menu-card ${activeSection === 'members' ? 'active' : ''}`}
-              type="button"
-              onClick={() => toggleSection('members')}
-            >
-              <h3>Proje Üyeleri</h3>
-              <p>Projelerdeki aktif ekip üyelerini görüntüleyin.</p>
-            </button>
+            <div className="navigation-date" aria-label={`Bugün ${todayText}`}>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="2" />
+                <path d="M16 3v4M8 3v4M3 10h18" />
+              </svg>
+              <span>{todayText}</span>
+            </div>
           </div>
 
-          {activeSection === 'users' && currentUser?.role === 'Admin' && (
-            <section className="content-section">
-              <h2>Kullanıcı Yönetimi</h2>
+          {location.pathname === '/dashboard' && (
+            <>
+              <section className="workspace-overview">
+                <div className="workspace-main">
+                  <div className="workspace-welcome">
+                    <div>
+                      <span className="workspace-eyebrow">ÇALIŞMA ALANI</span>
+                      <h2>Merhaba, {overviewUserName}</h2>
+                      <p>Projelerinizdeki güncel işleri tek ekrandan takip edin.</p>
+                    </div>
+                    <button type="button" onClick={() => navigate('/tasks')}>
+                      Görevleri aç
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
 
-              <label className="user-filter">
-                <input
-                  type="checkbox"
-                  checked={showInactiveUsers}
-                  onChange={(event) => setShowInactiveUsers(event.target.checked)}
-                />
-                Pasif kullanıcıları göster
-              </label>
+                  <div className="workspace-project-strip">
+                    <div className="workspace-section-heading">
+                      <div>
+                        <span>AKTİF ÇALIŞMALAR</span>
+                        <h3>Projeler</h3>
+                      </div>
+                      <button type="button" onClick={() => navigate('/projects')}>
+                        Tümünü gör
+                      </button>
+                    </div>
+
+                    <div className="workspace-project-list">
+                      {projects.slice(0, 4).map((project, index) => {
+                        const projectTasks = tasks.filter(
+                          (task) => Number(task.projectId) === Number(project.id),
+                        )
+
+                        return (
+                          <button
+                            className={`workspace-project-item project-color-${index % 4}`}
+                            key={project.id}
+                            type="button"
+                            onClick={() => navigate('/projects')}
+                          >
+                            <span className="workspace-project-icon" aria-hidden="true">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7h5l2 2h11v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+                              </svg>
+                            </span>
+                            <span className="workspace-project-copy">
+                              <strong>{project.name}</strong>
+                              <small>{projectTasks.length} görev</small>
+                            </span>
+                            <span className="workspace-project-arrow" aria-hidden="true">→</span>
+                          </button>
+                        )
+                      })}
+
+                      {projects.length === 0 && (
+                        <p className="workspace-empty">Henüz erişebildiğiniz bir proje yok.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="workspace-task-board">
+                    <div className="workspace-section-heading">
+                      <div>
+                        <span>GÜNCEL DURUM</span>
+                        <h3>Görev Akışı</h3>
+                      </div>
+                      <strong>{tasks.length} görev</strong>
+                    </div>
+
+                    <div className="workspace-task-columns">
+                      {overviewStatusGroups.map((group) => {
+                        const groupTasks = tasks.filter(
+                          (task) => getTaskStatusValue(task.status) === group.key,
+                        )
+
+                        return (
+                          <div className={`workspace-task-column ${group.className}`} key={group.key}>
+                            <div className="workspace-column-title">
+                              <span />
+                              <strong>{group.title}</strong>
+                              <b>{groupTasks.length}</b>
+                            </div>
+
+                            {groupTasks.slice(0, 3).map((task) => (
+                              <button
+                                className="workspace-task-preview"
+                                key={task.id}
+                                type="button"
+                                onClick={() => navigate('/tasks')}
+                              >
+                                <strong>{task.title}</strong>
+                                <small>{getProjectName(task.projectId)}</small>
+                                <span>{getTaskPriorityLabel(task.priority)}</span>
+                              </button>
+                            ))}
+
+                            {groupTasks.length === 0 && <small className="workspace-no-task">Görev yok</small>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="workspace-sidebar">
+                  <div className="workspace-profile">
+                    <span className="workspace-avatar">{getInitials(overviewUserName)}</span>
+                    <strong>{overviewUserName}</strong>
+                    <small>{currentUser?.role}</small>
+                  </div>
+
+                  <div className="workspace-quick-counts">
+                    <div><strong>{projects.length}</strong><span>Proje</span></div>
+                    <div><strong>{tasks.length}</strong><span>Görev</span></div>
+                    <div>
+                      <strong>{tasks.filter((task) => getTaskStatusValue(task.status) === 3).length}</strong>
+                      <span>Tamamlandı</span>
+                    </div>
+                  </div>
+
+                  <div className="workspace-plan">
+                    <div className="workspace-section-heading">
+                      <div>
+                        <span>PLAN</span>
+                        <h3>Yaklaşan Teslimler</h3>
+                      </div>
+                    </div>
+
+                    {upcomingTasks.map((task, index) => (
+                      <button
+                        className={`workspace-plan-item plan-color-${index % 4}`}
+                        key={task.id}
+                        type="button"
+                        onClick={() => navigate('/tasks')}
+                      >
+                        <span>{new Date(task.dueDate).toLocaleDateString('tr-TR', { day: '2-digit' })}</span>
+                        <div>
+                          <strong>{task.title}</strong>
+                          <small>{new Date(task.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</small>
+                        </div>
+                      </button>
+                    ))}
+
+                    {upcomingTasks.length === 0 && (
+                      <p className="workspace-empty">Yaklaşan bir teslim bulunmuyor.</p>
+                    )}
+                  </div>
+                </aside>
+              </section>
+            </>
+)}
+
+          {activeSection === 'users' && currentUser?.role === 'Admin' && (
+            <section className="content-section user-page-section">
+
+              <div className="user-management-toolbar">
+                <div className="user-management-intro">
+                  <span className="user-management-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M19 8v6M22 11h-6" />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Sistem Kullanıcıları</strong>
+                    <small>Rolleri ve hesap durumlarını yönetin</small>
+                  </div>
+                </div>
+
+                <div className="user-statistics">
+                  <span><strong>{users.filter((user) => user.isActive).length}</strong> Aktif</span>
+                  <span><strong>{users.filter((user) => !user.isActive).length}</strong> Pasif</span>
+                </div>
+
+                <label className="user-filter-switch">
+                  <input
+                    type="checkbox"
+                    checked={showInactiveUsers}
+                    onChange={(event) => setShowInactiveUsers(event.target.checked)}
+                  />
+                  <span className="switch-track" aria-hidden="true"><i /></span>
+                  Pasif kullanıcıları göster
+                </label>
+              </div>
 
               {userMessage && <p className="message">{userMessage}</p>}
 
@@ -1661,21 +2030,28 @@ function App() {
                 <p>Görüntülenecek kullanıcı bulunamadı.</p>
               )}
 
-              <div className="item-list">
+              <div className="user-list">
                 {users
                   .filter((user) => showInactiveUsers || user.isActive)
                   .map((user) => (
-                  <article className="item-card" key={user.id}>
-                    <h3>
-                      {user.firstName} {user.lastName}
-                    </h3>
-                    <p>{user.email}</p>
-                    <p>
-                      <strong>Sistem rolü:</strong> {user.role}
-                    </p>
+                  <article className={`user-row ${!user.isActive ? 'passive' : ''}`} key={user.id}>
+                    <span className="user-list-avatar">
+                      {getInitials(`${user.firstName} ${user.lastName}`)}
+                    </span>
 
-                    <label className="role-field">
-                      Rolü değiştir
+                    <div className="user-list-identity">
+                      <div>
+                        <strong>{user.firstName} {user.lastName}</strong>
+                        {Number(currentUser.id) === user.id && (
+                          <small className="current-account-label">Mevcut hesap</small>
+                        )}
+                      </div>
+                      <span>{user.email}</span>
+                      {user.department && <small>{user.department}</small>}
+                    </div>
+
+                    <label className="user-role-field">
+                      <span>Sistem rolü</span>
                       <select
                         value={user.role}
                         disabled={Number(currentUser.id) === user.id}
@@ -1689,31 +2065,21 @@ function App() {
                       </select>
                     </label>
 
-                    <p>
-                      <strong>Durum:</strong>{' '}
-                      <span
-                        className={user.isActive ? 'status-active' : 'status-passive'}
-                      >
-                        {user.isActive ? 'Aktif' : 'Pasif'}
-                      </span>
-                    </p>
-                    {user.department && (
-                      <p>
-                        <strong>Departman:</strong> {user.department}
-                      </p>
-                    )}
+                    <span className={`user-status-pill ${user.isActive ? 'active' : 'passive'}`}>
+                      <i /> {user.isActive ? 'Aktif' : 'Pasif'}
+                    </span>
 
                     {Number(currentUser.id) === user.id ? (
-                      <button className="user-action-button" type="button" disabled>
-                        Mevcut hesap
+                      <button className="user-status-button" type="button" disabled>
+                        Değiştirilemez
                       </button>
                     ) : (
                       <button
-                        className="user-action-button"
+                        className="user-status-button"
                         type="button"
                         onClick={() => updateUserStatus(user)}
                       >
-                        {user.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+                        {user.isActive ? 'Pasife Al' : 'Aktifleştir'}
                       </button>
                     )}
                   </article>
@@ -1723,47 +2089,111 @@ function App() {
           )}
 
           {activeSection === 'members' && (
-            <section className="content-section">
-              <h2>Proje Üyeleri</h2>
+            <section className="content-section member-page-section">
+              <div className="member-page-intro">
+                <div className="member-page-intro-copy">
+                  <span className="member-page-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M19 8v6M22 11h-6" />
+                    </svg>
+                  </span>
+                  <div>
+                    <span>EKİP ALANI</span>
+                    <h2>Proje Üyeleri</h2>
+                    <p>Projelerde çalışan kişileri ve proje içindeki rollerini yönetin.</p>
+                  </div>
+                </div>
 
-              <div className="member-controls">
-                <label htmlFor="member-project-select">Proje seçin</label>
-
-                <select
-                  id="member-project-select"
-                  value={selectedProjectId}
-                  onChange={(event) => {
-                    setSelectedProjectId(event.target.value)
-                    setProjectMembers([])
-                    setAvailableProjectUsers([])
-                    setMemberMessage('')
-                    setNewMemberUserId('')
-                    setNewMemberRole('Member')
-                  }}
-                >
-                  <option value="">Proje seçiniz</option>
-
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={getProjectMembers}
-                  disabled={isMemberLoading}
-                >
-                  {isMemberLoading ? 'Yükleniyor...' : 'Üyeleri Göster'}
-                </button>
+                <div className="member-page-counts">
+                  <div><strong>{projects.length}</strong><span>Proje</span></div>
+                  <div><strong>{selectedProjectId ? projectMembers.length : '—'}</strong><span>Seçili Ekip</span></div>
+                </div>
               </div>
+
+              <div className="comment-section-heading">
+                <div>
+                  <h3>{selectedProjectId ? selectedProject?.name || 'Seçilen proje' : 'Proje seçin'}</h3>
+                  <p>
+                    {selectedProjectId
+                      ? 'Projenin ekip üyelerini aşağıda yönetebilirsiniz.'
+                      : 'Ekibini görmek için aşağıdaki projelerden birine tıklayın.'}
+                  </p>
+                </div>
+                {selectedProjectId && (
+                  <div className="comment-heading-actions">
+                    <button
+                      className="comment-back-button"
+                      type="button"
+                      onClick={() => {
+                        setSelectedProjectId('')
+                        setProjectMembers([])
+                        setAvailableProjectUsers([])
+                        setMemberMessage('')
+                        setShowMemberModal(false)
+                      }}
+                    >
+                      ← Başka Proje Seç
+                    </button>
+                    {canManageMembers && (
+                      <button type="button" onClick={() => setShowMemberModal(true)}>
+                        + Üye Ekle
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {projects.length === 0 ? (
+                <p className="comment-empty-tasks">Görüntüleyebileceğiniz bir proje bulunmuyor.</p>
+              ) : (
+                <div className="member-project-list">
+                  {(selectedProjectId
+                    ? projects.filter((project) => project.id === Number(selectedProjectId))
+                    : projects
+                  ).map((project) => (
+                    <button
+                      className={`member-project-row ${Number(selectedProjectId) === project.id ? 'selected' : ''}`}
+                      type="button"
+                      key={project.id}
+                      onClick={() => {
+                        setSelectedProjectId(String(project.id))
+                        setProjectMembers([])
+                        setAvailableProjectUsers([])
+                        setMemberMessage('')
+                        setShowMemberModal(false)
+                        getProjectMembers(project.id)
+                      }}
+                    >
+                      <span className="project-list-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z" />
+                        </svg>
+                      </span>
+                      <span className="project-list-name">
+                        <strong>{project.name}</strong>
+                        <small>Ekip üyelerini görüntüleyin</small>
+                      </span>
+                      <span className="status-badge project-status">{getProjectStatusLabel(project.status)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {isMemberLoading && <p className="message">Proje üyeleri yükleniyor...</p>}
 
               {memberMessage && <p className="message">{memberMessage}</p>}
 
-              {selectedProjectId && canManageMembers && (
-                <form className="member-form" onSubmit={addProjectMember}>
-                  <h3>Projeye Üye Ekle</h3>
+              {selectedProjectId && canManageMembers && showMemberModal && (
+                <form className="member-form member-modal-form" onSubmit={addProjectMember}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Ekip Yönetimi</span>
+                      <h3>Projeye Üye Ekle</h3>
+                    </div>
+                    <button className="modal-close-button" type="button" onClick={() => setShowMemberModal(false)} aria-label="Pencereyi kapat">×</button>
+                  </div>
 
                   <label htmlFor="new-member-user-id">Kullanıcı</label>
                   <select
@@ -1806,23 +2236,18 @@ function App() {
                 !memberMessage &&
                 !isMemberLoading && <p>Bu projede aktif üye bulunamadı.</p>}
 
-              <div className="item-list">
+              <div className="member-list">
                 {projectMembers.map((member) => (
-                  <article className="item-card" key={member.id}>
-                    <h3>
-                      {member.userName || `Kullanıcı ${member.userId}`}
-                    </h3>
-                    <p>{member.email || 'E-posta bilgisi bulunmuyor.'}</p>
-                    <p>
-                      <strong>Kullanıcı ID:</strong> {member.userId}
-                    </p>
-                    <p>
-                      <strong>Proje rolü:</strong> {member.role}
-                    </p>
+                  <article className="member-row" key={member.id}>
+                    <span className="member-avatar">{getInitials(member.userName || member.email)}</span>
+                    <div className="member-identity">
+                      <strong>{member.userName || `Kullanıcı ${member.userId}`}</strong>
+                      <span>{member.email || 'E-posta bilgisi bulunmuyor.'}</span>
+                    </div>
 
                     {canManageMembers && (
                       <label className="role-field">
-                        Proje rolünü değiştir
+                        <span>Proje rolü</span>
                         <select
                           value={member.role}
                           onChange={(event) =>
@@ -1835,18 +2260,18 @@ function App() {
                         </select>
                       </label>
                     )}
-                    <p>
-                      <strong>Katılım tarihi:</strong>{' '}
+                    {!canManageMembers && <span className="member-role-label">{member.role}</span>}
+                    <span className="member-joined-date">
                       {new Date(member.joinedAt).toLocaleDateString('tr-TR')}
-                    </p>
+                    </span>
 
                     {canManageMembers && (
                       <button
-                        className="remove-button"
+                        className="member-remove-button"
                         type="button"
                         onClick={() => removeProjectMember(member)}
                       >
-                        Üyeyi Çıkar
+                        Çıkar
                       </button>
                     )}
                   </article>
@@ -1856,16 +2281,56 @@ function App() {
           )}
 
           {activeSection === 'projects' && (
-            <section className="content-section">
-              <h2>Projelerim</h2>
+            <section className="content-section project-page-section">
+              <div className="project-page-intro">
+                <div className="project-page-intro-copy">
+                  <span className="project-page-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7h5l2 2h11v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+                      <path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </span>
+                  <div>
+                    <span>PROJE ALANI</span>
+                    <h2>Projelerim</h2>
+                    <p>Erişebildiğiniz projeleri görüntüleyin ve yönetin.</p>
+                  </div>
+                </div>
+
+                <div className="project-page-counts">
+                  <div><strong>{projects.length}</strong><span>Toplam</span></div>
+                  <div><strong>{projects.filter((project) => project.status === 1 || project.status === 'Active').length}</strong><span>Aktif</span></div>
+                  <div><strong>{projects.filter((project) => project.status === 3 || project.status === 'Completed').length}</strong><span>Tamamlanan</span></div>
+                </div>
+              </div>
+
+              {(currentUser?.role === 'Admin' ||
+              currentUser?.role === 'ProjectManager') && (
+              <button
+              className="primary-action-button"
+              type="button"
+              onClick={() => setShowCreateProjectModal(true)}
+              >
+              + Yeni Proje
+              </button>
+          )}
 
               {projectMessage && <p className="message">{projectMessage}</p>}
 
               {(currentUser?.role === 'Admin' ||
-                currentUser?.role === 'ProjectManager') && (
-                <form className="project-form" onSubmit={createProject}>
+                currentUser?.role === 'ProjectManager') && showCreateProjectModal && (
+                  <form className="project-form modal-form" onSubmit={createProject}>
+                  <div className="modal-header">
                   <h3>Yeni Proje Oluştur</h3>
 
+                  <button
+                  className="modal-close-button"
+                  type="button"
+                  onClick={() => setShowCreateProjectModal(false)}
+                  >
+                  ×
+                  </button>
+                  </div>
                   <label htmlFor="new-project-name">Proje adı</label>
                   <input
                     id="new-project-name"
@@ -1915,7 +2380,7 @@ function App() {
               )}
 
               {editingProject && (
-                <form className="project-form" onSubmit={updateProject}>
+                <form className="project-form modal-form" onSubmit={updateProject}>
                   <div className="task-detail-header">
                     <h3>Projeyi Düzenle</h3>
                     <button type="button" onClick={() => setEditingProject(null)}>
@@ -1946,69 +2411,132 @@ function App() {
                 <p>Görüntülenecek proje bulunamadı.</p>
               )}
 
-              <div className="item-list">
+              <div className="project-summary-list">
                 {projects.map((project) => (
-                  <article className="item-card" key={project.id}>
-                    <h3>{project.name}</h3>
-                    <p>
-                      {project.description || 'Proje açıklaması bulunmuyor.'}
-                    </p>
-                    <p>
-                      <strong>Durum:</strong>{' '}
-                      <span className="status-badge project-status">
-                        {getProjectStatusLabel(project.status)}
-                      </span>
-                    </p>
-                    <p>
-                      <strong>Başlangıç:</strong>{' '}
-                      {new Date(project.startDate).toLocaleDateString('tr-TR')}
-                    </p>
-                    <button className="user-action-button" type="button" onClick={() => getProjectDetail(project.id)}>
-                      Detayı Göster
-                    </button>
-                    {(currentUser?.role === 'Admin' || Number(currentUser?.id) === project.ownerId) && (
-                      <>
-                        <button className="user-action-button" type="button" onClick={() => openProjectEdit(project)}>
-                          Projeyi Düzenle
-                        </button>
-                        {!project.isArchived && (
-                          <button className="archive-button" type="button" onClick={() => archiveProject(project)}>
-                            Arşivle
-                          </button>
-                        )}
-                        <button className="remove-button" type="button" onClick={() => deleteProject(project)}>
-                          Projeyi Sil
-                        </button>
-                      </>
-                    )}
-                  </article>
+                  <button
+                    className={`project-list-row project-row-status-${project.status}`}
+                    type="button"
+                    key={project.id}
+                    onClick={() => getProjectDetail(project.id)}
+                  >
+                    <span className="project-list-icon" aria-hidden="true">
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z" />
+                      </svg>
+                    </span>
+
+                    <span className="project-list-name">
+                      <strong>{project.name}</strong>
+                      <small>Proje detaylarını görüntüleyin</small>
+                    </span>
+
+                    <span className="status-badge project-status">
+                      {getProjectStatusLabel(project.status)}
+                    </span>
+
+                    <span className="project-list-link">Detayı Aç →</span>
+                  </button>
                 ))}
               </div>
 
               {selectedProjectDetail && (
-                <div className="task-detail">
-                  <div className="task-detail-header">
-                    <h3>Proje Detayı</h3>
+                <div className="task-detail project-detail-modal project-focus-modal">
+                  <div className="project-detail-heading">
+                    <div className="project-detail-title">
+                      <span className="project-detail-icon" aria-hidden="true">
+                        <svg
+                          width="25"
+                          height="25"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z" />
+                        </svg>
+                      </span>
+                      <div>
+                        <small>Proje Detayı</small>
+                        <h3>{selectedProjectDetail.name}</h3>
+                      </div>
+                    </div>
                     <button
+                      className="project-detail-close"
                       type="button"
                       onClick={() => {
                         setSelectedProjectDetail(null)
                         setSelectedProjectDetailMembers([])
                       }}
+                      aria-label="Pencereyi kapat"
                     >
-                      Kapat
+                      ×
                     </button>
                   </div>
-                  <p><strong>Proje:</strong> {selectedProjectDetail.name}</p>
-                  <p><strong>Açıklama:</strong> {selectedProjectDetail.description || 'Açıklama bulunmuyor.'}</p>
-                  <p><strong>Durum:</strong> {getProjectStatusLabel(selectedProjectDetail.status)}</p>
-                  <p><strong>Başlangıç:</strong> {new Date(selectedProjectDetail.startDate).toLocaleDateString('tr-TR')}</p>
-                  <p><strong>Bitiş:</strong> {selectedProjectDetail.endDate ? new Date(selectedProjectDetail.endDate).toLocaleDateString('tr-TR') : 'Belirlenmedi'}</p>
-                  <p><strong>Arşiv durumu:</strong> {selectedProjectDetail.isArchived ? 'Arşivlendi' : 'Aktif'}</p>
 
-                  <h4>Proje Ekibi</h4>
+                  <div className="project-detail-status-row">
+                    <span className="status-badge project-status">
+                      {getProjectStatusLabel(selectedProjectDetail.status)}
+                    </span>
+                    <span
+                      className={`archive-state ${
+                        selectedProjectDetail.isArchived ? 'archived' : ''
+                      }`}
+                    >
+                      {selectedProjectDetail.isArchived
+                        ? 'Arşivlendi'
+                        : 'Aktif Proje'}
+                    </span>
+                  </div>
+
+                  <section className="project-description-box">
+                    <span>Açıklama</span>
+                    <p>
+                      {selectedProjectDetail.description ||
+                        'Bu proje için açıklama bulunmuyor.'}
+                    </p>
+                  </section>
+
+                  <div className="project-info-grid">
+                    <article>
+                      <span>Başlangıç Tarihi</span>
+                      <strong>
+                        {new Date(
+                          selectedProjectDetail.startDate,
+                        ).toLocaleDateString('tr-TR')}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Bitiş Tarihi</span>
+                      <strong>
+                        {selectedProjectDetail.endDate
+                          ? new Date(
+                              selectedProjectDetail.endDate,
+                            ).toLocaleDateString('tr-TR')
+                          : 'Belirlenmedi'}
+                      </strong>
+                    </article>
+                  </div>
+
+                  <div className="project-team-heading">
+                    <h4>Proje Ekibi</h4>
+                    <span>{selectedProjectDetailMembers.length} aktif üye</span>
+                  </div>
+
                   {selectedProjectDetailMembers.length === 0 ? (
-                    <p>Bu projede aktif ekip üyesi bulunmuyor.</p>
+                    <p className="project-empty-team">
+                      Bu projede aktif ekip üyesi bulunmuyor.
+                    </p>
                   ) : (
                     <div className="project-detail-members">
                       {selectedProjectDetailMembers.map((member) => (
@@ -2017,9 +2545,45 @@ function App() {
                             {member.userName || `Kullanıcı ${member.userId}`}
                           </strong>
                           <span>{member.email}</span>
-                          <span>Proje rolü: {member.role}</span>
+                          <span className="member-role-label">{member.role}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {(currentUser?.role === 'Admin' ||
+                    Number(currentUser?.id) === selectedProjectDetail.ownerId) && (
+                    <div className="project-detail-actions">
+                      <button
+                        className="user-action-button"
+                        type="button"
+                        onClick={() => {
+                          const projectToEdit = selectedProjectDetail
+                          setSelectedProjectDetail(null)
+                          setSelectedProjectDetailMembers([])
+                          openProjectEdit(projectToEdit)
+                        }}
+                      >
+                        Projeyi Düzenle
+                      </button>
+
+                      {!selectedProjectDetail.isArchived && (
+                        <button
+                          className="archive-button"
+                          type="button"
+                          onClick={() => archiveProject(selectedProjectDetail)}
+                        >
+                          Projeyi Arşivle
+                        </button>
+                      )}
+
+                      <button
+                        className="remove-button"
+                        type="button"
+                        onClick={() => deleteProject(selectedProjectDetail)}
+                      >
+                        Projeyi Sil
+                      </button>
                     </div>
                   )}
                 </div>
@@ -2028,8 +2592,28 @@ function App() {
           )}
 
           {activeSection === 'tasks' && (
-            <section className="content-section">
-              <h2>Görevlerim</h2>
+            <section className="content-section task-page-section">
+              <div className="task-page-intro">
+                <div className="task-page-intro-copy">
+                  <span className="task-page-icon" aria-hidden="true">
+                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="3" />
+                      <path d="m8 9 2 2 4-4M8 15h8" />
+                    </svg>
+                  </span>
+                  <div>
+                    <span>ÇALIŞMA LİSTESİ</span>
+                    <h2>Görevlerim</h2>
+                    <p>Görevlerin durumunu, önceliğini ve proje bilgisini takip edin.</p>
+                  </div>
+                </div>
+
+                <div className="task-page-counts">
+                  <div><strong>{tasks.length}</strong><span>Toplam</span></div>
+                  <div><strong>{tasks.filter((task) => getTaskStatusValue(task.status) === 1).length}</strong><span>Devam Eden</span></div>
+                  <div><strong>{tasks.filter((task) => getTaskStatusValue(task.status) === 3).length}</strong><span>Tamamlanan</span></div>
+                </div>
+              </div>
 
               {taskMessage && <p className="message">{taskMessage}</p>}
               {taskActionMessage && (
@@ -2041,8 +2625,32 @@ function App() {
                   (project) =>
                     project.ownerId === Number(currentUser?.id),
                 )) && (
-                <form className="task-form" onSubmit={createTask}>
+                <button
+                  className="primary-action-button"
+                  type="button"
+                  onClick={() => setShowCreateTaskModal(true)}
+                >
+                  + Yeni Görev
+                </button>
+              )}
+
+              {(currentUser?.role === 'Admin' ||
+                projects.some(
+                  (project) =>
+                    project.ownerId === Number(currentUser?.id),
+                )) && showCreateTaskModal && (
+                <form className="task-form task-modal-form" onSubmit={createTask}>
+                  <div className="modal-header">
                   <h3>Yeni Görev Oluştur</h3>
+                    <button
+                      className="modal-close-button"
+                      type="button"
+                      onClick={() => setShowCreateTaskModal(false)}
+                      aria-label="Pencereyi kapat"
+                    >
+                      ×
+                    </button>
+                  </div>
 
                   <label htmlFor="new-task-project">Proje</label>
                   <select
@@ -2124,16 +2732,25 @@ function App() {
               )}
 
               {assignmentTask && (
-                <form className="task-form" onSubmit={assignTask}>
-                  <div className="task-detail-header">
-                    <h3>{assignmentTask.title} Görevini Ata</h3>
+                <form className="task-form task-modal-form" onSubmit={assignTask}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Görev Atama</span>
+                      <h3>{assignmentTask.title}</h3>
+                    </div>
                     <button
+                      className="modal-close-button"
                       type="button"
                       onClick={() => setAssignmentTask(null)}
+                      aria-label="Pencereyi kapat"
                     >
-                      Kapat
+                      ×
                     </button>
                   </div>
+
+                  <p className="modal-description">
+                    Bu görev için projedeki aktif üyelerden birini seçin.
+                  </p>
 
                   <label htmlFor="assignment-user">Proje üyesi</label>
                   <select
@@ -2161,14 +2778,19 @@ function App() {
               )}
 
               {editingTask && (
-                <form className="task-form" onSubmit={updateTask}>
-                  <div className="task-detail-header">
-                    <h3>Görevi Düzenle</h3>
+                <form className="task-form task-modal-form" onSubmit={updateTask}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Görev İşlemleri</span>
+                      <h3>Görevi Düzenle</h3>
+                    </div>
                     <button
+                      className="modal-close-button"
                       type="button"
                       onClick={() => setEditingTask(null)}
+                      aria-label="Pencereyi kapat"
                     >
-                      Kapat
+                      ×
                     </button>
                   </div>
 
@@ -2234,17 +2856,30 @@ function App() {
               )}
 
               {historyTask && (
-                <div className="task-detail">
-                  <div className="task-detail-header">
-                    <h3>{historyTask.title} – Değişiklik Geçmişi</h3>
+                <div className="task-detail task-detail-modal history-modal">
+                  <div className="project-detail-heading">
+                    <div className="project-detail-title">
+                      <span className="history-modal-icon" aria-hidden="true">
+                        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 12a9 9 0 1 0 3-6.7" />
+                          <path d="M3 4v5h5M12 7v5l3 2" />
+                        </svg>
+                      </span>
+                      <div>
+                        <small>Değişiklik Geçmişi</small>
+                        <h3>{historyTask.title}</h3>
+                      </div>
+                    </div>
                     <button
+                      className="project-detail-close"
                       type="button"
                       onClick={() => {
                         setHistoryTask(null)
                         setTaskHistories([])
                       }}
+                      aria-label="Pencereyi kapat"
                     >
-                      Kapat
+                      ×
                     </button>
                   </div>
 
@@ -2253,26 +2888,29 @@ function App() {
                   ) : (
                     <div className="history-list">
                       {taskHistories.map((history) => (
-                        <div className="history-item" key={history.id}>
-                          <strong>{history.description}</strong>
-                          <span>
+                        <article className="history-item" key={history.id}>
+                          <span className="history-dot" aria-hidden="true" />
+                          <div>
+                            <strong>{history.description}</strong>
+                            <span className="history-change">
                             {getHistoryValue(
                               history.changeType,
                               history.oldValue,
+                              getUserNameById,
                             )}{' '}
                             →{' '}
                             {getHistoryValue(
                               history.changeType,
                               history.newValue,
+                              getUserNameById,
                             )}
-                          </span>
-                          <span>
-                            İşlemi yapan: {history.changedByUserName}
-                          </span>
-                          <span>
-                            {new Date(history.createdAt).toLocaleString('tr-TR')}
-                          </span>
-                        </div>
+                            </span>
+                            <small>
+                              {history.changedByUserName} ·{' '}
+                              {new Date(history.createdAt).toLocaleString('tr-TR')}
+                            </small>
+                          </div>
+                        </article>
                       ))}
                     </div>
                   )}
@@ -2283,194 +2921,243 @@ function App() {
                 <p>Görüntülenecek görev bulunamadı.</p>
               )}
 
-              <div className="item-list">
+              <div className="task-summary-list">
                 {tasks.map((task) => (
-                  <article className="item-card" key={task.id}>
-                    <h3>{task.title}</h3>
-                    <p>{task.description || 'Görev açıklaması bulunmuyor.'}</p>
-                    <p>
-                      <strong>Durum:</strong>{' '}
-                      <span className={getTaskStatusClass(task.status)}>
+                  <button
+                    className={`task-list-row task-row-status-${getTaskStatusValue(task.status)}`}
+                    type="button"
+                    key={task.id}
+                    onClick={() => getTaskDetail(task.id)}
+                  >
+                    <span className="task-list-icon" aria-hidden="true">
+                      <svg
+                        width="21"
+                        height="21"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 11l2 2 4-4" />
+                        <rect x="4" y="4" width="16" height="16" rx="3" />
+                      </svg>
+                    </span>
+                    <span className="task-list-name">
+                      <strong>{task.title}</strong>
+                      <small>{getProjectName(task.projectId)}</small>
+                    </span>
+                    <span className={getPriorityClass(task.priority)}>
+                      {getTaskPriorityLabel(task.priority)}
+                    </span>
+                    <span className={getTaskStatusClass(task.status)}>
                         {getTaskStatusLabel(task.status)}
-                      </span>
-                    </p>
-                    <p>
-                      <strong>Öncelik:</strong>{' '}
-                      <span className={getPriorityClass(task.priority)}>
-                        {getTaskPriorityLabel(task.priority)}
-                      </span>
-                    </p>
-                    <p>
-                      <strong>Proje:</strong> {getProjectName(task.projectId)}
-                    </p>
-                    <p>
-                      <strong>Atanan kişi:</strong>{' '}
-                      {task.assignedToUserName || 'Henüz atanmadı'}
-                    </p>
-                    {task.dueDate && (
-                      <p>
-                        <strong>Teslim tarihi:</strong>{' '}
-                        {new Date(task.dueDate).toLocaleDateString('tr-TR')}
-                      </p>
-                    )}
-
-                    {canChangeTaskStatus(task) && (
-                      <label className="task-status-field">
-                        Durumu değiştir
-                        <select
-                        value={
-                          typeof task.status === 'number'
-                            ? task.status
-                            : {
-                                ToDo: 0,
-                                InProgress: 1,
-                                InReview: 2,
-                                Done: 3,
-                              }[task.status]
-                        }
-                        onChange={(event) =>
-                          updateTaskStatus(task.id, event.target.value)
-                        }
-                        >
-                          <option value="0">Yapılacak</option>
-                          <option value="1">Devam Ediyor</option>
-                          <option value="2">İncelemede</option>
-                          <option value="3">Tamamlandı</option>
-                        </select>
-                      </label>
-                    )}
-
-                    <button
-                      className="user-action-button"
-                      type="button"
-                      onClick={() => getTaskDetail(task.id)}
-                    >
-                      Detayı Göster
-                    </button>
-
-                    <button
-                      className="user-action-button"
-                      type="button"
-                      onClick={() => getTaskHistories(task)}
-                    >
-                      Geçmişi Göster
-                    </button>
-
-                    {canManageTask(task) && (
-                      <>
-                        <button
-                          className="user-action-button"
-                          type="button"
-                          onClick={() => openTaskEdit(task)}
-                        >
-                          Görevi Düzenle
-                        </button>
-                        <button
-                          className="user-action-button"
-                          type="button"
-                          onClick={() => openTaskAssignment(task)}
-                        >
-                          Görev Ata
-                        </button>
-                        <button
-                          className="remove-button"
-                          type="button"
-                          onClick={() => deleteTask(task)}
-                        >
-                          Görevi Sil
-                        </button>
-                      </>
-                    )}
-                  </article>
+                    </span>
+                    <span className="task-list-link">Detayı Aç →</span>
+                  </button>
                 ))}
               </div>
 
               {selectedTaskDetail && (
-                <div className="task-detail">
-                  <div className="task-detail-header">
-                    <h3>Görev Detayı</h3>
+                <div className="task-detail task-detail-modal task-focus-modal">
+                  <div className="project-detail-heading">
+                    <div className="project-detail-title">
+                      <span className="task-list-icon" aria-hidden="true">
+                        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 11l2 2 4-4" />
+                          <rect x="4" y="4" width="16" height="16" rx="3" />
+                        </svg>
+                      </span>
+                      <div>
+                        <small>Görev Detayı</small>
+                        <h3>{selectedTaskDetail.title}</h3>
+                      </div>
+                    </div>
                     <button
+                      className="project-detail-close"
                       type="button"
                       onClick={() => setSelectedTaskDetail(null)}
+                      aria-label="Pencereyi kapat"
                     >
-                      Kapat
+                      ×
                     </button>
                   </div>
-                  <p>
-                    <strong>Başlık:</strong> {selectedTaskDetail.title}
-                  </p>
-                  <p>
-                    <strong>Açıklama:</strong>{' '}
-                    {selectedTaskDetail.description || 'Açıklama bulunmuyor.'}
-                  </p>
-                  <p>
-                    <strong>Proje:</strong>{' '}
-                    {getProjectName(selectedTaskDetail.projectId)}
-                  </p>
-                  <p>
-                    <strong>Durum:</strong>{' '}
-                    {getTaskStatusLabel(selectedTaskDetail.status)}
-                  </p>
-                  <p>
-                    <strong>Öncelik:</strong>{' '}
-                    {getTaskPriorityLabel(selectedTaskDetail.priority)}
-                  </p>
-                  <p>
-                    <strong>Tahmini süre:</strong>{' '}
-                    {selectedTaskDetail.estimatedHours ?? 0} saat
-                  </p>
-                  <p>
-                    <strong>Atanan kişi:</strong>{' '}
-                    {selectedTaskDetail.assignedToUserName || 'Henüz atanmadı'}
-                  </p>
-                  {selectedTaskDetail.assignedToUserEmail && (
+
+                  <div className="project-detail-status-row">
+                    <span className={getTaskStatusClass(selectedTaskDetail.status)}>
+                      {getTaskStatusLabel(selectedTaskDetail.status)}
+                    </span>
+                    <span className={getPriorityClass(selectedTaskDetail.priority)}>
+                      {getTaskPriorityLabel(selectedTaskDetail.priority)}
+                    </span>
+                  </div>
+
+                  <section className="project-description-box">
+                    <span>Açıklama</span>
                     <p>
-                      <strong>E-posta:</strong>{' '}
-                      {selectedTaskDetail.assignedToUserEmail}
+                    {selectedTaskDetail.description || 'Açıklama bulunmuyor.'}
                     </p>
+                  </section>
+
+                  <div className="task-info-grid">
+                    <article><span>Proje</span><strong>{getProjectName(selectedTaskDetail.projectId)}</strong></article>
+                    <article><span>Atanan Kişi</span><strong>{selectedTaskDetail.assignedToUserName || 'Henüz atanmadı'}</strong></article>
+                    <article><span>Tahmini Süre</span><strong>{selectedTaskDetail.estimatedHours ?? 0} saat</strong></article>
+                    <article><span>Teslim Tarihi</span><strong>{selectedTaskDetail.dueDate ? new Date(selectedTaskDetail.dueDate).toLocaleDateString('tr-TR') : 'Belirlenmedi'}</strong></article>
+                  </div>
+
+                  {canChangeTaskStatus(selectedTaskDetail) && (
+                    <label className="task-status-field">
+                      Durumu değiştir
+                      <select
+                        value={typeof selectedTaskDetail.status === 'number' ? selectedTaskDetail.status : { ToDo: 0, InProgress: 1, InReview: 2, Done: 3 }[selectedTaskDetail.status]}
+                        onChange={(event) => updateTaskStatus(selectedTaskDetail.id, event.target.value)}
+                      >
+                        <option value="0">Yapılacak</option>
+                        <option value="1">Devam Ediyor</option>
+                        <option value="2">İncelemede</option>
+                        <option value="3">Tamamlandı</option>
+                      </select>
+                    </label>
                   )}
+
+                  <div className="task-detail-actions">
+                    <button className="user-action-button" type="button" onClick={() => { const task = selectedTaskDetail; setSelectedTaskDetail(null); getTaskHistories(task) }}>Geçmişi Göster</button>
+                    {canManageTask(selectedTaskDetail) && (
+                      <>
+                        <button className="user-action-button" type="button" onClick={() => { const task = selectedTaskDetail; setSelectedTaskDetail(null); openTaskEdit(task) }}>Düzenle</button>
+                        <button className="user-action-button" type="button" onClick={() => { const task = selectedTaskDetail; setSelectedTaskDetail(null); openTaskAssignment(task) }}>Görev Ata</button>
+                        <button className="remove-button" type="button" onClick={() => deleteTask(selectedTaskDetail)}>Sil</button>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </section>
           )}
 
           {activeSection === 'timeLogs' && (
-            <section className="content-section">
-              <h2>Zaman Kayıtları</h2>
+            <section className="content-section time-log-page-section">
+              <div className="time-log-page-intro">
+                <div className="time-log-page-intro-copy">
+                  <span className="time-log-page-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                  </span>
+                  <div>
+                    <span>ÇALIŞMA TAKİBİ</span>
+                    <h2>Zaman Kayıtları</h2>
+                    <p>Görevlere harcanan süreleri ve çalışma açıklamalarını takip edin.</p>
+                  </div>
+                </div>
 
-              <div className="time-log-controls">
-                <label htmlFor="task-select">Görev seçin</label>
-
-                <select
-                  id="task-select"
-                  value={selectedTaskId}
-                  onChange={(event) => {
-                    setSelectedTaskId(event.target.value)
-                    setTimeLogResult(null)
-                    setTimeLogMessage('')
-                  }}
-                >
-                  <option value="">Görev seçiniz</option>
-
-                  {tasks.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.title}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={getTimeLogs}
-                  disabled={isTimeLogLoading}
-                >
-                  {isTimeLogLoading ? 'Yükleniyor...' : 'Kayıtları Göster'}
-                </button>
+                <div className="time-log-page-counts">
+                  <div><strong>{tasks.length}</strong><span>Görev</span></div>
+                  <div><strong>{timeLogResult ? timeLogResult.totalHours : '—'}</strong><span>Toplam Saat</span></div>
+                </div>
               </div>
 
-              {selectedTaskId && canAddRecordToTask(selectedTaskId) && (
-                <form className="task-form" onSubmit={createTimeLog}>
-                  <h3>Çalışma Süresi Ekle</h3>
+              <div className="comment-section-heading">
+                <div>
+                  <h3>{selectedTaskId ? tasks.find((task) => task.id === Number(selectedTaskId))?.title || 'Seçilen görev' : 'Görev seçin'}</h3>
+                  <p>
+                    {selectedTaskId
+                      ? 'Göreve ait çalışma kayıtlarını aşağıda görüntüleyebilirsiniz.'
+                      : 'Zaman kayıtlarını görmek için aşağıdaki görevlerden birine tıklayın.'}
+                  </p>
+                </div>
+                {selectedTaskId && (
+                  <div className="comment-heading-actions">
+                    <button
+                      className="comment-back-button"
+                      type="button"
+                      onClick={() => {
+                        setSelectedTaskId('')
+                        setTimeLogResult(null)
+                        setTimeLogMessage('')
+                        setShowTimeLogModal(false)
+                      }}
+                    >
+                      ← Başka Görev Seç
+                    </button>
+                    {canAddRecordToTask(selectedTaskId) && (
+                      <button type="button" onClick={() => setShowTimeLogModal(true)}>
+                        + Yeni Kayıt
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {tasks.length === 0 ? (
+                <p className="comment-empty-tasks">
+                  Zaman kayıtlarını görüntüleyebileceğiniz bir görev bulunmuyor.
+                </p>
+              ) : (
+                <div className="comment-task-list">
+                  {(selectedTaskId
+                    ? tasks.filter((task) => task.id === Number(selectedTaskId))
+                    : tasks
+                  ).map((task) => (
+                    <button
+                      className={`comment-task-row ${
+                        Number(selectedTaskId) === task.id ? 'selected' : ''
+                      }`}
+                      type="button"
+                      key={task.id}
+                      onClick={() => {
+                        setSelectedTaskId(String(task.id))
+                        setTimeLogResult(null)
+                        setTimeLogMessage('')
+                        setShowTimeLogModal(false)
+                        getTimeLogs(task.id)
+                      }}
+                    >
+                      <span className="comment-task-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="8" />
+                          <path d="M12 8v4l3 2" />
+                        </svg>
+                      </span>
+                      <span>
+                        <strong>{task.title}</strong>
+                        <small>{getProjectName(task.projectId)}</small>
+                      </span>
+                      <span className={getTaskStatusClass(task.status)}>
+                        {getTaskStatusLabel(task.status)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {isTimeLogLoading && (
+                <p className="message">Zaman kayıtları yükleniyor...</p>
+              )}
+
+              {selectedTaskId && canAddRecordToTask(selectedTaskId) && showTimeLogModal && (
+                <form className="task-form task-modal-form" onSubmit={createTimeLog}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Çalışma Takibi</span>
+                      <h3>Zaman Kaydı Ekle</h3>
+                    </div>
+                    <button
+                      className="modal-close-button"
+                      type="button"
+                      onClick={() => setShowTimeLogModal(false)}
+                      aria-label="Pencereyi kapat"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <p className="modal-description">
+                    {tasks.find((task) => task.id === Number(selectedTaskId))?.title}
+                  </p>
 
                   <label htmlFor="new-time-log-hours">Çalışma süresi</label>
                   <input
@@ -2514,34 +3201,32 @@ function App() {
 
               {timeLogResult && (
                 <>
-                  <p className="total-hours">
-                    <strong>Toplam çalışma süresi:</strong>{' '}
-                    {timeLogResult.totalHours} saat
-                  </p>
+                  <div className="time-log-summary">
+                    <span className="time-log-summary-icon" aria-hidden="true">◷</span>
+                    <div>
+                      <small>Toplam Çalışma Süresi</small>
+                      <strong>{timeLogResult.totalHours} saat</strong>
+                    </div>
+                    <p>
+                      {tasks.find((task) => task.id === Number(selectedTaskId))?.title}
+                    </p>
+                  </div>
 
                   {timeLogResult.timeLogs.length === 0 ? (
                     <p>Bu göreve ait zaman kaydı bulunamadı.</p>
                   ) : (
-                    <div className="item-list">
+                    <div className="time-log-list">
                       {timeLogResult.timeLogs.map((timeLog) => (
-                        <article className="item-card" key={timeLog.id}>
-                          <h3>{timeLog.hours} saat</h3>
-                          <p>
-                            <strong>Çalışan:</strong>{' '}
-                            {timeLog.userName || `Kullanıcı ${timeLog.userId}`}
-                          </p>
-                          <p>
-                            {timeLog.description || 'Açıklama bulunmuyor.'}
-                          </p>
-                          <p>
-                            <strong>Çalışma tarihi:</strong>{' '}
-                            {new Date(timeLog.workDate).toLocaleDateString(
-                              'tr-TR',
-                            )}
-                          </p>
-                          <p>
-                            <strong>Kullanıcı ID:</strong> {timeLog.userId}
-                          </p>
+                        <article className="time-log-row" key={timeLog.id}>
+                          <div className="time-log-date">
+                            <strong>{new Date(timeLog.workDate).getDate()}</strong>
+                            <span>{new Date(timeLog.workDate).toLocaleDateString('tr-TR', { month: 'short' })}</span>
+                          </div>
+                          <div className="time-log-content">
+                            <strong>{timeLog.userName || `Kullanıcı ${timeLog.userId}`}</strong>
+                            <p>{timeLog.description || 'Açıklama bulunmuyor.'}</p>
+                          </div>
+                          <span className="time-log-hours">{timeLog.hours} saat</span>
                         </article>
                       ))}
                     </div>
@@ -2552,36 +3237,114 @@ function App() {
           )}
 
           {activeSection === 'comments' && (
-            <section className="content-section">
-              <h2>Görev Yorumları</h2>
+            <section className="content-section comment-page-section">
+              <div className="comment-page-intro">
+                <div className="comment-page-intro-copy">
+                  <span className="comment-page-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
+                      <path d="M8 9h8M8 13h5" />
+                    </svg>
+                  </span>
+                  <div>
+                    <span>GÖREV GÖRÜŞMELERİ</span>
+                    <h2>Yorumlar</h2>
+                    <p>Görevlerle ilgili görüşmeleri görüntüleyin ve ekip ile iletişim kurun.</p>
+                  </div>
+                </div>
 
-              <div className="time-log-controls">
-                <label htmlFor="comment-task-select">Görev seçin</label>
-                <select
-                  id="comment-task-select"
-                  value={commentTaskId}
-                  onChange={(event) => {
-                    setCommentTaskId(event.target.value)
-                    setComments([])
-                    setCommentMessage('')
-                    setEditingCommentId(null)
-                  }}
-                >
-                  <option value="">Görev seçiniz</option>
-                  {tasks.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.title} – {getProjectName(task.projectId)}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => getComments()}>
-                  Yorumları Göster
-                </button>
+                <div className="comment-page-counts">
+                  <div><strong>{tasks.length}</strong><span>Görev</span></div>
+                  <div><strong>{commentTaskId ? comments.length : '—'}</strong><span>Seçili Yorumlar</span></div>
+                </div>
               </div>
 
-              {commentTaskId && canCommentOnTask(commentTaskId) && (
-                <form className="task-form" onSubmit={createComment}>
-                  <h3>Yeni Yorum Ekle</h3>
+              <div className="comment-section-heading">
+                <div>
+                  <h3>{commentTaskId ? tasks.find((task) => task.id === Number(commentTaskId))?.title || 'Seçilen görev' : 'Görev seçin'}</h3>
+                  <p>
+                    {commentTaskId
+                      ? 'Göreve ait yorumları aşağıda görüntüleyebilirsiniz.'
+                      : 'Yorumlarını görmek için aşağıdaki görevlerden birine tıklayın.'}
+                  </p>
+                </div>
+                {commentTaskId && (
+                  <div className="comment-heading-actions">
+                    <button
+                      className="comment-back-button"
+                      type="button"
+                      onClick={() => {
+                        setCommentTaskId('')
+                        setComments([])
+                        setCommentMessage('')
+                        setEditingCommentId(null)
+                        setShowCommentModal(false)
+                      }}
+                    >
+                      ← Başka Görev Seç
+                    </button>
+                    {canCommentOnTask(commentTaskId) && (
+                      <button type="button" onClick={() => setShowCommentModal(true)}>
+                        + Yeni Yorum
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {tasks.length === 0 ? (
+                <p className="comment-empty-tasks">
+                  Yorumlarını görüntüleyebileceğiniz bir görev bulunmuyor.
+                </p>
+              ) : (
+                <div className="comment-task-list">
+                  {(commentTaskId
+                    ? tasks.filter((task) => task.id === Number(commentTaskId))
+                    : tasks
+                  ).map((task) => (
+                    <button
+                      className={`comment-task-row ${
+                        Number(commentTaskId) === task.id ? 'selected' : ''
+                      }`}
+                      type="button"
+                      key={task.id}
+                      onClick={() => {
+                        setCommentTaskId(String(task.id))
+                        setEditingCommentId(null)
+                        setShowCommentModal(false)
+                        getComments(task.id)
+                      }}
+                    >
+                      <span className="comment-task-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 11l2 2 4-4" />
+                          <rect x="4" y="4" width="16" height="16" rx="3" />
+                        </svg>
+                      </span>
+                      <span>
+                        <strong>{task.title}</strong>
+                        <small>{getProjectName(task.projectId)}</small>
+                      </span>
+                      <span className={getTaskStatusClass(task.status)}>
+                        {getTaskStatusLabel(task.status)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {commentTaskId && canCommentOnTask(commentTaskId) && showCommentModal && (
+                <form className="task-form task-modal-form" onSubmit={createComment}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Görev Görüşmesi</span>
+                      <h3>Yeni Yorum</h3>
+                    </div>
+                    <button className="modal-close-button" type="button" onClick={() => setShowCommentModal(false)} aria-label="Pencereyi kapat">×</button>
+                  </div>
+                  <p className="modal-description">
+                    {tasks.find((task) => task.id === Number(commentTaskId))?.title}
+                  </p>
                   <label htmlFor="new-comment-content">Yorum</label>
                   <textarea
                     id="new-comment-content"
@@ -2597,8 +3360,14 @@ function App() {
               )}
 
               {editingCommentId && (
-                <form className="task-form" onSubmit={updateComment}>
-                  <h3>Yorumu Düzenle</h3>
+                <form className="task-form task-modal-form" onSubmit={updateComment}>
+                  <div className="modal-header">
+                    <div>
+                      <span className="modal-eyebrow">Yorum İşlemleri</span>
+                      <h3>Yorumu Düzenle</h3>
+                    </div>
+                    <button className="modal-close-button" type="button" onClick={() => setEditingCommentId(null)} aria-label="Pencereyi kapat">×</button>
+                  </div>
                   <textarea
                     rows="3"
                     value={editingCommentContent}
@@ -2608,12 +3377,6 @@ function App() {
                     required
                   />
                   <button type="submit">Yorumu Kaydet</button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingCommentId(null)}
-                  >
-                    Vazgeç
-                  </button>
                 </form>
               )}
 
@@ -2623,49 +3386,33 @@ function App() {
                 <p>Bu göreve henüz yorum eklenmemiş.</p>
               )}
 
-              <div className="item-list">
+              <div className="comment-list">
                 {comments.map((comment) => {
                   const canManageComment =
                     currentUser?.role === 'Admin' ||
                     Number(currentUser?.id) === comment.userId
+                  const authorName =
+                    Number(currentUser?.id) === comment.userId
+                      ? 'Siz'
+                      : comment.userName || comment.email || `Kullanıcı ${comment.userId}`
 
                   return (
-                    <article className="item-card" key={comment.id}>
-                      <p>{comment.content}</p>
-                      <p>
-                        <strong>Yazan:</strong>{' '}
-                        {Number(currentUser?.id) === comment.userId
-                          ? 'Siz'
-                          : comment.userName ||
-                            comment.email ||
-                            `Kullanıcı ${comment.userId}`}
-                      </p>
-                      <p>
-                        <strong>Tarih:</strong>{' '}
-                        {new Date(comment.createdAt).toLocaleString('tr-TR')}
-                      </p>
-                      {comment.updatedAt && <small>Düzenlendi</small>}
-                      {canManageComment && (
-                        <>
-                          <button
-                            className="user-action-button"
-                            type="button"
-                            onClick={() => {
-                              setEditingCommentId(comment.id)
-                              setEditingCommentContent(comment.content)
-                            }}
-                          >
-                            Yorumu Düzenle
-                          </button>
-                          <button
-                            className="remove-button"
-                            type="button"
-                            onClick={() => deleteComment(comment)}
-                          >
-                            Yorumu Sil
-                          </button>
-                        </>
-                      )}
+                    <article className="comment-row" key={comment.id}>
+                      <span className="comment-avatar">{getInitials(authorName)}</span>
+                      <div className="comment-body">
+                        <div className="comment-meta">
+                          <strong>{authorName}</strong>
+                          <span>{new Date(comment.createdAt).toLocaleString('tr-TR')}</span>
+                          {comment.updatedAt && <small>Düzenlendi</small>}
+                        </div>
+                        <p>{comment.content}</p>
+                        {canManageComment && (
+                          <div className="comment-actions">
+                            <button type="button" onClick={() => { setEditingCommentId(comment.id); setEditingCommentContent(comment.content) }}>Düzenle</button>
+                            <button className="comment-delete-button" type="button" onClick={() => deleteComment(comment)}>Sil</button>
+                          </div>
+                        )}
+                      </div>
                     </article>
                   )
                 })}
